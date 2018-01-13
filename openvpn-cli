@@ -25,6 +25,7 @@ require 'fileutils'             # advanced file utils: FileUtils
 require 'mkmf'                  # find_executable
 require 'ostruct'               # OpenStruct
 require 'open3'                 # Better system commands
+require 'socket'                # Networking support
 require 'yaml'                  # YAML support
 
 # Gems available in package form from Arch or cyberlinux
@@ -206,6 +207,7 @@ class VPN
       raise("couldn't find '#{@vpn}' in config") if vpn.nil?
       @username = vpn['user']
       @openvpn_conf = vpn['conf']
+      @route = vpn['route']
       @auth_path = File.join(File.dirname(@openvpn_conf), "#{@vpn}.auth")
     rescue Exception => e
       @log.puts("Error: #{e}".colorize(:red)) and exit
@@ -254,7 +256,7 @@ class VPN
             end
           }
 
-          # Handle thread communication on VPN thread
+          # Manage thread communication and actions
           vpn_started = false
           while true do
             @log.puts("Waiting for vpn #{@vpn.colorize(:cyan)} to be started...") if !vpn_started
@@ -266,6 +268,11 @@ class VPN
                 vpn_started = true
                 @log.puts("VPN #{@vpn.colorize(:cyan)} is up and running")
                 comm_out << CommMsg.new(CommCmd.vpn_up, nil)
+
+                # Add any routes from the configuration
+                tun_ip = Socket.getifaddrs.find{|x| x.addr and x.name == 'tun0' and x.addr.ipv4?}.addr.ip_address
+                @log.print("Add new vpn route #{@route.colorize(:cyan)} for #{tun_ip.colorize(:cyan)} on tun0")
+                exec_with_status("ip route add #{@route} via #{tun_ip} dev tun0")
               end
 
               # Terminate
@@ -320,6 +327,27 @@ class VPN
     }
 
     return vpn_thread, comm_out
+  end
+
+  # Execute the shell command and print status
+  # @param cmd [String] command to execute
+  # @param die [bool] exit on true
+  # @result status [bool] true on success else false
+  def exec_with_status(cmd, die:true, check:nil)
+    out = `#{cmd}`
+    status = true
+    status = check == out if !check.nil?
+    status = $?.exitstatus == 0 if check.nil?
+
+    #if status
+    if $?.exitstatus == 0
+      @log.puts("...success!".colorize(:green), notime:true)
+    else
+      @log.puts("...failed!".colorize(:red), notime:true)
+      @log.puts(out.colorize(:red)) and exit if die
+    end
+
+    return status
   end
 end
 
