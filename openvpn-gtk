@@ -1,0 +1,327 @@
+#!/usr/bin/env ruby
+#MIT License
+#Copyright (c) 2018 phR0ze
+#
+#Permission is hereby granted, free of charge, to any person obtaining a copy
+#of this software and associated documentation files (the "Software"), to deal
+#in the Software without restriction, including without limitation the rights
+#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#copies of the Software, and to permit persons to whom the Software is
+#furnished to do so, subject to the following conditions:
+#
+#The above copyright notice and this permission notice shall be included in all
+#copies or substantial portions of the Software.
+#
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#SOFTWARE.
+
+#-----------------------------------------------------------------------------------------------
+# Simple GTK+ UI for openvpn and tooling for simple VPN access
+#-----------------------------------------------------------------------------------------------
+load File.join(File.dirname(File.expand_path(__FILE__)), "openvpn-cli")
+
+# Gems that should already be installed
+begin
+  require 'gtk3'
+  require 'colorize'
+rescue Exception => e
+  mod = e.message.split(' ').last.sub('/', '-')
+  !puts("Error: install missing module with 'sudo gem install --no-user-install #{mod}'") and exit
+end
+
+class OpenVpnPia
+  def initialize(log)
+    !puts("Error: must be executed as root user".colorize(:red)) and exit unless Process.uid.zero?
+    @log = log
+    @datapath = '/usr/share/openvpn-pia'
+    @config = '/etc/openvpn/client/pia.conf'
+    @icon_path = '/usr/share/icons/hicolor/32x32/apps'
+    @icon = File.join(@icon_path, 'openvpn-pia.png')
+    @enabled_icon = File.join(@icon_path, 'openvpn-pia-enabled.png')
+    @targeted_icon = File.join(@icon_path, 'openvpn-pia-targeted.png')
+    @disabled_icon  = File.join(@icon_path, 'openvpn-pia-disabled.png')
+
+    # Load openvpn configs and flag icons
+    @flags = Dir[File.join(@datapath, 'images/flag-*.png')]
+    @openvpn_configs = Dir['/etc/openvpn/client/*.ovpn'].sort.reverse
+
+    # VPN thread communication
+    @halt = false
+    @vpn_comm_in = nil
+
+    # Construct UI elements
+    @builder = Gtk::Builder.new
+    @tray = create_system_tray_icon
+    @popup_menu = create_popup_menu
+    @builder.add_from_file(File.join(@datapath, 'openvpn-pia-settings.ui'))
+    @logwin, @logview, @logiter = create_log_window
+    @settings = create_settings_window
+  end
+
+  # Create the system tray icon
+  # returns [Gtk::StatusIcon] system tray icon
+  def create_system_tray_icon
+    tray = Gtk::StatusIcon.new
+    tray.pixbuf = GdkPixbuf::Pixbuf.new(file:@icon)
+
+    # Left click menu?
+    tray.signal_connect('activate'){|widget|
+      widget.pixbuf = GdkPixbuf::Pixbuf.new(file:@targeted_icon)
+    }
+
+    return tray
+  end
+
+  # Create the popup menu for the system tray icon
+  # returns [Gtk::Menu] popup menu
+  def create_popup_menu
+    menu = Gtk::Menu.new
+
+    # Add enable entry
+    enable = Gtk::ImageMenuItem.new(label: "Enable")
+    enable.image = Gtk::Image.new(pixbuf: GdkPixbuf::Pixbuf.new(file:@enabled_icon, width:16, height:16))
+    enable.signal_connect('activate'){ start_and_manage_vpn(false) }
+    menu.append(enable)
+
+    # Add target entry
+    target = Gtk::ImageMenuItem.new(label: "Target")
+    target.image = Gtk::Image.new(pixbuf: GdkPixbuf::Pixbuf.new(file:@targeted_icon, width:16, height:16))
+    target.signal_connect('activate'){ start_and_manage_vpn(true) }
+    menu.append(target)
+
+    # Add disable entry
+    disable = Gtk::ImageMenuItem.new(label: "Disable")
+    disable.image = Gtk::Image.new(pixbuf: GdkPixbuf::Pixbuf.new(file:@disabled_icon, width:16, height:16))
+    disable.signal_connect('activate'){ @vpn_comm_in << CommMsg.new(CommCmd.halt, nil) }
+    menu.append(disable)
+    menu.append(Gtk::SeparatorMenuItem.new)
+
+    # Add settings entry
+    settings = Gtk::ImageMenuItem.new(stock: Gtk::Stock::PREFERENCES)
+    settings.label = "Settings"
+    settings.signal_connect('activate'){ @settings.show_all }
+    menu.append(settings)
+
+    # Add log entry
+    log = Gtk::ImageMenuItem.new(stock: Gtk::Stock::PREFERENCES)
+    log.label = "Logs"
+    log.signal_connect('activate'){ @logwin.show_all }
+    menu.append(log)
+    menu.append(Gtk::SeparatorMenuItem.new)
+
+    # Add quit entry
+    quit = Gtk::ImageMenuItem.new(stock: Gtk::Stock::QUIT)
+    quit.signal_connect('activate'){
+      @halt = true
+      if @vpn_comm_in
+        @vpn_comm_in << CommMsg.new(CommCmd.halt, nil)
+      else
+        Gtk.main_quit
+      end
+    }
+    menu.append(quit)
+
+    # Handle popup menu signal
+    @tray.signal_connect('popup-menu'){|widget, button, time|
+      menu.popup(nil, nil, button, time)
+    }
+
+    menu.show_all
+    return menu
+  end
+
+  # Create the log window
+  # https://github.com/ruby-gnome2/ruby-gnome2/blob/master/gtk3/sample/gtk-demo/textview.rb
+  # @returns [Gtk::Window] the log window to work with
+  def create_log_window
+    logwin = Gtk::Window.new
+    logwin.title = "OpenVPN PIA - Logs"
+    logwin.set_default_size(1000,700)
+    logwin.icon = GdkPixbuf::Pixbuf.new(file:@icon)
+    logwin.override_background_color(:normal, Gdk::RGBA.new(0, 0, 0, 0))
+
+    # Create a scrollable text view
+    @logview = Gtk::TextView.new
+    @logview.editable = false
+    @logview.override_background_color(:normal, Gdk::RGBA.new(0, 0, 0, 0))
+    scroll = Gtk::ScrolledWindow.new
+    scroll.set_policy(:automatic, :automatic)
+    scroll.add(@logview)
+    logwin.add(scroll)
+
+    # Automatically scroll window
+    @logview.signal_connect("size-allocate"){
+      scroll.vadjustment.value = scroll.vadjustment.upper - scroll.vadjustment.page_size
+    }
+
+    # Configure text view
+    @logview.buffer.create_tag("font", "font" => "Mono 11")
+    ColorMap.each{|code, color| @logview.buffer.create_tag(color, "foreground" => color) }
+    @logiter = @logview.buffer.get_iter_at(offset: 0)
+    log("OpenVPN PIA Logs\n".colorize(:cyan))
+
+    # Hide log window on escape
+    logwin.signal_connect('delete-event'){|widget, event|
+      widget.hide_on_delete
+    }
+    logwin.signal_connect('key_press_event'){|widget, event|
+      logwin.visible = false if event.keyval == Gdk::Keyval::KEY_Escape
+    }
+
+    return logwin, @logview, @logiter
+  end
+
+  # Create the settings window
+  # @returns [Gtk::Window] the settings window to work with
+  def create_settings_window
+    settings = @builder.get_object("settings")
+    settings.title = "OpenVPN PIA - Settings"
+    settings.icon = GdkPixbuf::Pixbuf.new(file:@icon)
+
+    # Add all vpn gateways to the menu
+#    @openvpn_configs.each{|x|
+#      gateway = File.basename(x, '.ovpn')
+#      item = Gtk::ImageMenuItem.new(gateway)
+#
+#      # Determine correct flag to use for the given gateway
+#      flag = @flags.find{|x| x if gateway.start_with?(File.basename(x, '.png')[/flag-(.*)/, 1])}
+#      item.image = Gtk::Image.new(GdkPixbuf::Pixbuf.new(file:flag, width:16, height:16)) if flag
+#      menu.append(item)
+#    }
+
+    # Populate the combo box
+    region_combo = @builder.get_object("region_combo")
+    @openvpn_configs.each{|x|
+      gateway = File.basename(x, '.ovpn')
+      region_combo.append_text(gateway)
+    }
+    region_combo.set_active(0)
+
+    # Read in and set settings
+    username_entry = @builder.get_object("username_entry")
+    password_entry = @builder.get_object("password_entry")
+    target_entry = @builder.get_object("target_entry")
+    if File.exist?(@config)
+      File.open(@config, 'r'){|f|
+        lines = f.readlines 
+        username_entry.text = lines[0].strip if lines.any?
+        password_entry.text = lines[1].strip if lines.size > 1
+        if lines.size > 2
+          index = @openvpn_configs.index{|x| x == lines[2].strip}
+          region_combo.set_active(index)
+        end
+        target_entry.text = lines[3].strip if lines.size > 3
+      }
+    end
+
+    # Hide settings window
+    cancel_btn = @builder.get_object("cancel_btn")
+    settings.signal_connect('delete-event'){|widget, event|
+      widget.hide_on_delete
+    }
+    cancel_btn.signal_connect('clicked'){
+      settings.visible = false
+    }
+    settings.signal_connect('key_press_event'){|widget, event|
+      settings.visible = false if event.keyval == Gdk::Keyval::KEY_Escape
+    }
+
+    # Save out settings
+    save_btn = @builder.get_object("save_btn")
+    save_btn.signal_connect('clicked'){
+      File.open(@config, 'w'){|f|
+        f.puts(username_entry.text)
+        f.puts(password_entry.text)
+        if region_combo.active > -1
+          f.puts(@openvpn_configs[region_combo.active])
+        else
+          f.puts("")
+        end
+        f.puts(target_entry.text)
+      }
+      File.chmod(0600, @config)
+      settings.visible = false
+    }
+
+    return settings
+  end
+
+  # Start and manage the vpn
+  # @param target_mode [Boolean] true then run in target mode
+  def start_and_manage_vpn(target_mode)
+    return if !@vpn_comm_in.nil?
+    @vpn_comm_in = Queue.new
+
+    region_combo = @builder.get_object("region_combo")
+    openvpn_config = @openvpn_configs[region_combo.active]
+    app = target_mode ? @builder.get_object("target_entry").text : nil
+
+    Thread.new{
+      begin
+        vpn = VPN.new(@log, "pia", @config, openvpn_config, nameservers: ["209.222.18.222", "209.222.18.218"])
+        thread, vpn_comm_out = vpn.run(@vpn_comm_in, app: app)
+
+        msg = false
+        while true do
+          sleep(0.25) if !msg
+          msg = false
+
+          # Incoming notification
+          if !vpn_comm_out.empty?
+            msg = vpn_comm_out.pop
+            log(@log.format("CMD: #{msg.cmd}, Value: #{msg.value}\n").colorize(:magenta))
+
+            # Set icon for tunnel up status
+            if msg.cmd == CommCmd.tun_up
+              icon = target_mode ? @targeted_icon : @enabled_icon
+              @tray.pixbuf = GdkPixbuf::Pixbuf.new(file:icon)
+
+            # Set icon disabled status
+            elsif msg.cmd == CommCmd.tun_down
+              @tray.pixbuf = GdkPixbuf::Pixbuf.new(file:@disabled_icon)
+
+            # Handle halt ack
+            elsif msg.cmd == CommCmd.halt
+              Gtk.main_quit if @halt
+              break
+            end
+          end
+
+          # Print log messages
+          if !@log.empty?
+            msg = true
+            log(@log.pop)
+          end
+        end
+      rescue Exception => e
+        log(e)
+      ensure
+        @vpn_comm_in = nil
+        @tray.pixbuf = GdkPixbuf::Pixbuf.new(file:@disabled_icon)
+      end
+    }
+  end
+
+  # Add the colorized string to the given text buffer
+  # @param str [String] string with ansi color codes
+  def log(str)
+    @log.tokenize_colorize(str).each{|token|
+      @logview.buffer.insert(@logiter, token.str, tags: [ColorMap[token.color], "font"])
+    }
+  end
+end
+
+#-------------------------------------------------------------------------------
+# Main entry point
+#-------------------------------------------------------------------------------
+if __FILE__ == $0
+  OpenVpnPia.new(Log.new(queue: Queue.new))
+  Gtk.main
+end
+
+# vim: ft=ruby:ts=2:sw=2:sts=2

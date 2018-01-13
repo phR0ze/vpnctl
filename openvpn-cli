@@ -1,0 +1,332 @@
+#!/usr/bin/env ruby
+#MIT License
+#Copyright (c) 2018 phR0ze
+#
+#Permission is hereby granted, free of charge, to any person obtaining a copy
+#of this software and associated documentation files (the "Software"), to deal
+#in the Software without restriction, including without limitation the rights
+#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#copies of the Software, and to permit persons to whom the Software is
+#furnished to do so, subject to the following conditions:
+#
+#The above copyright notice and this permission notice shall be included in all
+#copies or substantial portions of the Software.
+#
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#SOFTWARE.
+
+require 'time'                  # iso8601 time format
+require 'fileutils'             # advanced file utils: FileUtils
+require 'mkmf'                  # find_executable
+require 'ostruct'               # OpenStruct
+require 'open3'                 # Better system commands
+require 'yaml'                  # YAML support
+
+# Gems available in package form from Arch or cyberlinux
+begin
+  require 'colorize'            # color output: colorize
+  require 'cmds'                # commands for command line params
+rescue Exception => e
+  mod = e.message.split(' ').last.sub('/', '-')
+  !puts("Error: install missing package with 'sudo pacman -S ruby-#{mod}'") and exit
+end
+
+Token = Struct.new(:str, :color)
+ColorMap = {
+  "30" => "black",
+  "31" => "red",
+  "32" => "green",
+  "33" => "yellow",
+  "34" => "blue",
+  "35" => "magenta",
+  "36" => "cyan",
+  "37" => "white",
+  "39" => "gray88"   # default
+}
+
+class Log
+  # @param log_path [String] path to log file
+  # @param log_queue [Queue] optional queue to log to
+  def initialize(log_path:nil, log_queue:nil)
+    @path = nil
+    @path = File.expand_path(log_path) if log_path
+    @queue = log_queue
+
+    # Open log file creating directory if necessary
+    if @path
+      FileUtils.mkdir_p(File.dirname(@path)) if !File.exist?(File.dirname(@path))
+      @file = File.open(@path, 'a')
+      @file.sync = true
+    end
+  end
+
+  # Format the given string for use in log
+  def format(str)
+    return "#{Time.now.utc.iso8601(3)}:: #{str}"
+  end
+
+  def print(str, notime:false)
+    str = format(str) if !notime
+    @file.write(strip_colorize(str)) if @path
+    if @queue
+      @queue << str
+    else
+      $stdout.print(str)
+    end
+
+    return true
+  end
+
+  def puts(str, notime: false)
+    str = format(str) if !notime
+    @file.write(strip_colorize(str) + "\n") if @path
+    if @queue
+      @queue << str + "\n"
+    else
+      $stdout.puts(str)
+    end
+
+    return true
+  end
+
+  # Remove an item from the queue, block until one exists
+  def pop()
+    return @queue.pop
+  end
+
+  # Check if the log queue is empty
+  def empty?
+    return @queue ? @queue.empty? : true
+  end
+
+  # Strip the ansi color codes from the given string
+  # @param str [String] string with ansi color codes
+  # @returns [String] string without any ansi codes
+  def strip_colorize(str)
+    return str.gsub(/\e\[0;[39]\d;49m/, '').gsub(/\e\[0m/, '')
+  end
+
+  # Tokenize the given colorized string
+  # @param str [String] string with ansi color codes
+  # @returns [Array] array of Token
+  def tokenize_colorize(str)
+    tokens = []
+    matches = str.to_enum(:scan, /\e\[0;[39]\d;49m(.*?[\s]*)\e\[0m/).map{Regexp.last_match}
+
+    i, istart, iend = 0, 0, 0
+    match = matches[i]
+    while istart < str.size
+      color = "39"
+      iend = str.size
+      token = str[istart..iend]
+
+      # Current token is not a match
+      if match && match.begin(0) != istart
+        iend = match.begin(0)-1
+        token = str[istart..iend]
+        istart = iend + 1
+
+      # Current token is a match
+      elsif match && match.begin(0) == istart
+        iend = match.end(0)
+        token = match.captures.first
+        color = match.to_s[/\e\[0;(\d+);49m.*/, 1]
+        i += 1; match = matches[i]
+        istart = iend
+
+      # Ending
+      else
+        istart = iend
+      end
+
+      # Create token and advance
+      tokens << Token.new(token, color)
+    end
+
+    return tokens
+  end
+end
+
+CommCmd = OpenStruct.new({
+  halt: 'halt',
+  vpn_up: 'vpn_up',
+  vpn_down: 'vpn_down',
+})
+CommMsg = Struct.new(:cmd, :value)
+
+class VPN
+  # Initialize this VPN instance
+  # @param log [Log] logs to stdout or a queue
+  # @param vpn [String] name of the vpn to use
+  def initialize(log, vpn)
+    @log = log
+    @vpn = vpn
+    @linuxuser = Process.uid.zero? ? Etc.getpwuid(ENV['SUDO_UID'].to_i).name : ENV['USER']
+    @root_path = File.dirname(File.expand_path(__FILE__))
+    @config_path = "/home/#{@linuxuser}/.config/openvpn.yml"
+    @config_path = File.join(@root_path, 'openvpn.yml') if !File.exist?(@config_path)
+
+    # Environment settings
+    @proxyenv = {
+      'ftp_proxy' => ENV['ftp_proxy'],
+      'http_proxy' => ENV['http_proxy'],
+      'https_proxy' => ENV['https_proxy'],
+      'no_proxy' => "localhost,127.0.0.1"
+    }
+    @proxy = ENV['http_proxy'] ? (@proxyenv.map{|k,v| "export #{k}=#{v}"} * ';') + ";" : nil
+
+    # Validate the conf is correct
+    @log.puts("Error: must be executed as root".colorize(:red)) and exit unless Process.uid.zero?
+    @log.puts("Error: config file doesn't exist!".colorize(:red)) and exit unless File.exists?(@config_path)
+    @log.puts("Error: IPForward=kernel must be set in your systemd-networkd configuration!") and
+      exit unless `cat /proc/sys/net/ipv4/ip_forward`.include?('1')
+    begin
+      @config = YAML.load_file(@config_path)
+      vpns = @config['vpns']
+      raise "missing 'vpns' list" if vpns.nil?
+      vpn = vpns.find{|x| x['name'] == @vpn }
+      @username = vpn['user']
+      @openvpn_conf = vpn['conf']
+    rescue Exception => e
+      @log.puts("Error: invalid config file '#{@config_path}'".colorize(:red))
+      @log.puts(e.to_s.colorize(:red))
+    end
+  end
+
+  # Start and manage the vpn connection in a separate thread
+  # @param comm_in [Queue] VPN communication Queue incoming
+  # @returns [Thread, Queue] management thread and VPN communication Queue outgoing
+  def run(comm_in)
+
+    # (1) VPN thread: manage communication with consumers
+    comm_out = Queue.new
+    vpn_thread = Thread.new{
+      count = 0
+      halt = false
+
+      while !halt do
+        begin
+          retry_str = " - retry #{count}" if count > 0
+          @log.puts("Starting the VPN connection#{retry_str}".colorize(:yellow))
+          @log.puts("Using OpenVPN config #{@openvpn_conf.colorize(:cyan)}")
+
+          # (2) OpenVPN thread: manages the openvpn process
+          resolved_script = "/etc/openvpn/scripts/update-systemd-resolved"
+          env_path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+          cmd = "openvpn --config #{@openvpn_conf} --setenv '#{env_path}' --script-security 2 "
+          cmd += "--up #{resolved_script} --down #{resolved_script} --down-pre"
+          stdin, stdout, openvpn = Open3.popen2e("bash -c '#{@proxy}#{cmd}'")
+
+          # (3) Log thread: Start a separate log thread drain stdout to logs
+          log_writer = Thread.new{
+            while line=stdout.gets do
+              comm_in << CommMsg.new(CommCmd.vpn_up, nil) if line.include?("Initialization Sequence Completed")
+              @log.puts("#{'OVPN:'.colorize(:yellow)} #{line.strip}")
+            end
+          }
+
+          # Handle thread communication on VPN thread
+          vpn_started = false
+          while true do
+            @log.puts("Waiting for vpn #{@vpn.colorize(:cyan)} to be started...") if !vpn_started
+            if !comm_in.empty?
+              msg = comm_in.pop
+              
+              # Wait for tunnel to be created
+              if msg.cmd == CommCmd.vpn_up && !vpn_started
+                vpn_started = true
+                @log.puts("VPN #{@vpn.colorize(:cyan)} is up and running")
+                comm_out << CommMsg.new(CommCmd.vpn_up, nil)
+              end
+
+              # Terminate
+              if msg.cmd == CommCmd.halt
+                @log.puts("Halting the management thread")
+                raise SystemExit
+              end
+            else
+              sleep(0.25)
+            end
+
+            # Monitor vpn
+            raise(Exception, "OpenVPN connection failed") if !openvpn.alive?
+          end
+
+        # Allow for aborting
+        rescue SystemExit, Interrupt
+          halt = true
+
+        # Log exceptions
+        rescue Exception => e
+          @log.puts("#{e.to_s}".colorize(:red))
+          comm_out << CommMsg.new(CommCmd.tun_down, nil)
+
+        # Clean up on errors and try again
+        ensure
+          stdin.close if !stdin.nil?
+          stdout.close if !stdout.nil?
+
+          # Wait for log to drain then send out halt notification
+          sleep(0.25)
+          while !@log.empty? do
+            sleep(0.25)
+          end
+          comm_out << CommMsg.new(CommCmd.halt, nil) if halt
+        end
+
+        # Retry sleep logic
+        if halt
+          @log.puts("System exit or user terminated!".colorize(:yellow))
+        else
+          count += 1
+          @log.puts("OpenVPN terminated/disconnected waiting 10".colorize(:red))
+          sleep(10)
+        end
+      end
+    }
+
+    return vpn_thread, comm_out
+  end
+end
+
+#-------------------------------------------------------------------------------
+# Main entry point
+#-------------------------------------------------------------------------------
+if __FILE__ == $0
+  app = 'openvpn-cli'
+  version = '0.0.1'
+  examples = "Examples:\n".colorize(:green)
+  examples += "Start VPN: sudo ./#{app} start --vpn=ospra\n".colorize(:green)
+
+  opts = Cmds.new(app, version, examples)
+  opts.add('start', 'Start VPN service', [
+    CmdOpt.new('--vpn=VPN_NAME', 'VPN name to lookup in config', type:String, required: true),
+  ])
+  opts.parse!
+
+  # Execute
+  puts(opts.banner)
+
+  # Create the vpn instance to work with
+  comm_in = Queue.new
+  vpn = VPN.new(Log.new, opts[:vpn])
+
+  # Start the VPN
+  if opts[:start]
+    begin
+      thread, comm_out = vpn.run(comm_in)
+      puts("Waiting for VPN to halt")
+      thread.join
+    rescue Exception => e
+      comm_in << CommMsg.new(CommCmd.halt, nil)
+      puts("Error: #{e.to_s.colorize(:red)}")
+    end
+  end
+end
+
+# vim: ft=ruby:ts=2:sw=2:sts=2
