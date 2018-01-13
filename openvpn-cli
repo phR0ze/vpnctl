@@ -70,6 +70,17 @@ class Log
     return "#{Time.now.utc.iso8601(3)}:: #{str}"
   end
 
+  def newline
+    @file.write("\n") if @path
+    if @queue
+      @queue << "\n"
+    else
+      $stdout.puts
+    end
+
+    return true
+  end
+
   def print(str, notime:false)
     str = format(str) if !notime
     @file.write(strip_colorize(str)) if @path
@@ -188,13 +199,13 @@ class VPN
     begin
       @config = YAML.load_file(@config_path)
       vpns = @config['vpns']
-      raise "missing 'vpns' list" if vpns.nil?
+      raise("missing 'vpns' list in config") if vpns.nil?
       vpn = vpns.find{|x| x['name'] == @vpn }
+      raise("couldn't find '#{@vpn}' in config") if vpn.nil?
       @username = vpn['user']
       @openvpn_conf = vpn['conf']
     rescue Exception => e
-      @log.puts("Error: invalid config file '#{@config_path}'".colorize(:red))
-      @log.puts(e.to_s.colorize(:red))
+      @log.puts("Error: #{e}".colorize(:red)) and exit
     end
   end
 
@@ -220,12 +231,18 @@ class VPN
           env_path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
           cmd = "openvpn --config #{@openvpn_conf} --setenv '#{env_path}' --script-security 2 "
           cmd += "--up #{resolved_script} --down #{resolved_script} --down-pre"
-          stdin, stdout, openvpn = Open3.popen2e("bash -c '#{@proxy}#{cmd}'")
+          stdin, stdout, openvpn_thread = Open3.popen2e("bash -c '#{@proxy}#{cmd}'")
 
           # (3) Log thread: Start a separate log thread drain stdout to logs
-          log_writer = Thread.new{
+          log_thread = Thread.new{
             while line=stdout.gets do
-              comm_in << CommMsg.new(CommCmd.vpn_up, nil) if line.include?("Initialization Sequence Completed")
+              if line.include?("Initialization Sequence Completed")
+                comm_in << CommMsg.new(CommCmd.vpn_up, nil) 
+              elsif line.include?("Enter Auth Username:")
+                @log.puts("Triggered Username")
+              elsif line.include?("Enter Auth Password:")
+                @log.puts("Triggered Password")
+              end
               @log.puts("#{'OVPN:'.colorize(:yellow)} #{line.strip}")
             end
           }
@@ -254,7 +271,7 @@ class VPN
             end
 
             # Monitor vpn
-            raise(Exception, "OpenVPN connection failed") if !openvpn.alive?
+            raise(Exception, "OpenVPN connection failed") if !openvpn_thread.alive?
           end
 
         # Allow for aborting
@@ -270,6 +287,10 @@ class VPN
         ensure
           stdin.close if !stdin.nil?
           stdout.close if !stdout.nil?
+          if openvpn_thread.alive?
+            Process.kill("KILL", openvpn_thread.pid)
+            openvpn_thread.kill
+          end
 
           # Wait for log to drain then send out halt notification
           sleep(0.25)
@@ -313,6 +334,7 @@ if __FILE__ == $0
   puts(opts.banner)
 
   # Create the vpn instance to work with
+  log = Log.new
   comm_in = Queue.new
   vpn = VPN.new(Log.new, opts[:vpn])
 
@@ -320,11 +342,14 @@ if __FILE__ == $0
   if opts[:start]
     begin
       thread, comm_out = vpn.run(comm_in)
-      puts("Waiting for VPN to halt")
+      log.puts("MGMT: Waiting for VPN to halt".colorize(:magenta))
       thread.join
-    rescue Exception => e
+    rescue Interrupt
+      log.newline
+      log.print("MGMT: Halting VPN".colorize(:magenta))
       comm_in << CommMsg.new(CommCmd.halt, nil)
-      puts("Error: #{e.to_s.colorize(:red)}")
+      comm_out.pop
+      log.puts("MGMT: VPN Halted".colorize(:magenta))
     end
   end
 end
