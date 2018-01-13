@@ -174,9 +174,11 @@ class VPN
   # Initialize this VPN instance
   # @param log [Log] logs to stdout or a queue
   # @param vpn [String] name of the vpn to use
-  def initialize(log, vpn)
+  # @param pass [String] password to use with the VPN
+  def initialize(log, vpn, pass)
     @log = log
     @vpn = vpn
+    @password = pass
     @linuxuser = Process.uid.zero? ? Etc.getpwuid(ENV['SUDO_UID'].to_i).name : ENV['USER']
     @root_path = File.dirname(File.expand_path(__FILE__))
     @config_path = "/home/#{@linuxuser}/.config/openvpn.yml"
@@ -204,6 +206,7 @@ class VPN
       raise("couldn't find '#{@vpn}' in config") if vpn.nil?
       @username = vpn['user']
       @openvpn_conf = vpn['conf']
+      @auth_path = File.join(File.dirname(@openvpn_conf), "#{@vpn}.auth")
     rescue Exception => e
       @log.puts("Error: #{e}".colorize(:red)) and exit
     end
@@ -222,6 +225,9 @@ class VPN
 
       while !halt do
         begin
+          # Write out the auth file for OpenVPN to read
+          File.open(@auth_path, "w", 0600){|f| f.puts(@username); f.puts(@password)}
+
           retry_str = " - retry #{count}" if count > 0
           @log.puts("Starting the VPN connection#{retry_str}".colorize(:yellow))
           @log.puts("Using OpenVPN config #{@openvpn_conf.colorize(:cyan)}")
@@ -230,7 +236,8 @@ class VPN
           resolved_script = "/etc/openvpn/scripts/update-systemd-resolved"
           env_path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
           cmd = "openvpn --config #{@openvpn_conf} --setenv '#{env_path}' --script-security 2 "
-          cmd += "--up #{resolved_script} --down #{resolved_script} --down-pre"
+          cmd += "--up #{resolved_script} --down #{resolved_script} --down-pre "
+          cmd += "--auth-user-pass #{@auth_path}"
           stdin, stdout, openvpn_thread = Open3.popen2e("bash -c '#{@proxy}#{cmd}'")
 
           # (3) Log thread: Start a separate log thread drain stdout to logs
@@ -285,9 +292,10 @@ class VPN
 
         # Clean up on errors and try again
         ensure
+          File.delete(@auth_path) if File.exist?(@auth_path)
           stdin.close if !stdin.nil?
           stdout.close if !stdout.nil?
-          if openvpn_thread.alive?
+          if openvpn_thread and openvpn_thread.alive?
             Process.kill("KILL", openvpn_thread.pid)
             openvpn_thread.kill
           end
@@ -334,9 +342,13 @@ if __FILE__ == $0
   puts(opts.banner)
 
   # Create the vpn instance to work with
+  require 'io/console'
+  print("Enter Password: ")
+  pass = STDIN.noecho(&:gets).chomp
+
   log = Log.new
   comm_in = Queue.new
-  vpn = VPN.new(Log.new, opts[:vpn])
+  vpn = VPN.new(Log.new, opts[:vpn], pass)
 
   # Start the VPN
   if opts[:start]
@@ -346,7 +358,7 @@ if __FILE__ == $0
       thread.join
     rescue Interrupt
       log.newline
-      log.print("MGMT: Halting VPN".colorize(:magenta))
+      log.puts("MGMT: Halting VPN".colorize(:magenta))
       comm_in << CommMsg.new(CommCmd.halt, nil)
       comm_out.pop
       log.puts("MGMT: VPN Halted".colorize(:magenta))
