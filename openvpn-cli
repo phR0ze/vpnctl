@@ -176,11 +176,13 @@ class Config
     attr_accessor :vpns
   end
 
-  def initialize
+  # Encapsulate configuratino for reuse with both cli and gui
+  # @param config_name [String] name of the config file
+  def initialize(config_name)
     @root_path = File.dirname(File.expand_path(__FILE__))
     @linuxuser = Process.uid.zero? ? Etc.getpwuid(ENV['SUDO_UID'].to_i).name : ENV['USER']
-    @config_path = "/home/#{@linuxuser}/.config/openvpn.yml"
-    @config_path = File.join(@root_path, 'openvpn.yml') if !File.exist?(@config_path)
+    @config_path = "/home/#{@linuxuser}/.config/#{config_name}"
+    @config_path = File.join(@root_path, config_name) if !File.exist?(@config_path)
 
     @log.puts("Error: config file doesn't exist!".colorize(:red)) and exit unless File.exists?(@config_path)
     begin
@@ -392,7 +394,8 @@ if __FILE__ == $0
 
   log = Log.new
   comm_in = Queue.new
-  vpn = VPN.new(Log.new, opts[:vpn], pass)
+  config = Config.new('openvpn.yml')
+  vpn = VPN.new(log, config, opts[:vpn], pass)
 
   # Start the VPN
   if opts[:start]
