@@ -25,30 +25,47 @@
 #-----------------------------------------------------------------------------------------------
 load File.join(File.dirname(File.expand_path(__FILE__)), "openvpn-cli")
 
-# Gems that should already be installed
+# Packages available in cyberlinux or arch linux
 begin
   require 'gtk3'
   require 'colorize'
 rescue Exception => e
   mod = e.message.split(' ').last.sub('/', '-')
-  !puts("Error: install missing module with 'sudo gem install --no-user-install #{mod}'") and exit
+  !puts("Error: install missing package with 'sudo package -S ruby-#{mod}'") and exit
 end
 
-class OpenVpnPia
-  def initialize(log)
+class OpenVpnGtk
+  def initialize
     !puts("Error: must be executed as root user".colorize(:red)) and exit unless Process.uid.zero?
-    @log = log
-    @datapath = '/usr/share/openvpn-pia'
-    @config = '/etc/openvpn/client/pia.conf'
-    @icon_path = '/usr/share/icons/hicolor/32x32/apps'
-    @icon = File.join(@icon_path, 'openvpn-pia.png')
-    @enabled_icon = File.join(@icon_path, 'openvpn-pia-enabled.png')
-    @targeted_icon = File.join(@icon_path, 'openvpn-pia-targeted.png')
-    @disabled_icon  = File.join(@icon_path, 'openvpn-pia-disabled.png')
 
-    # Load openvpn configs and flag icons
-    @flags = Dir[File.join(@datapath, 'images/flag-*.png')]
-    @openvpn_configs = Dir['/etc/openvpn/client/*.ovpn'].sort.reverse
+    @log = Log.new(queue: Queue.new)
+    @datapath = '/usr/share/openvpn-gtk'
+    #@config = '/etc/openvpn/client/pia.conf'
+    @icon_path = File.join(@datapath, 'images/32x32')
+    @icon_path = 'images/32x32' if !File.exist?(@icon_path)
+    @icon = File.join(@icon_path, 'openvpn-gtk.png')
+    @enabled_icon = File.join(@icon_path, 'openvpn-gtk-enabled.png')
+    @targeted_icon = File.join(@icon_path, 'openvpn-gtk-targeted.png')
+    @disabled_icon  = File.join(@icon_path, 'openvpn-gtk-disabled.png')
+
+    # Load openvpn-gtk config
+    @linuxuser = Process.uid.zero? ? Etc.getpwuid(ENV['SUDO_UID'].to_i).name : ENV['USER']
+    @config_path = "/home/#{@linuxuser}/.config/openvpn.yml"
+    @config_path = File.join(@root_path, 'openvpn.yml') if !File.exist?(@config_path)
+    @log.puts("Error: config file doesn't exist!".colorize(:red)) and exit unless File.exists?(@config_path)
+    begin
+      @config = YAML.load_file(@config_path)
+      vpns = @config['vpns']
+      raise("missing 'vpns' list in config") if vpns.nil?
+      vpn = vpns.find{|x| x['name'] == @vpn }
+      raise("couldn't find '#{@vpn}' in config") if vpn.nil?
+      @username = vpn['user']
+      @openvpn_conf = vpn['conf']
+      @route = vpn['route']
+      @auth_path = File.join(File.dirname(@openvpn_conf), "#{@vpn}.auth")
+    rescue Exception => e
+      @log.puts("Error: #{e}".colorize(:red)) and exit
+    end
 
     # VPN thread communication
     @halt = false
@@ -320,7 +337,7 @@ end
 # Main entry point
 #-------------------------------------------------------------------------------
 if __FILE__ == $0
-  OpenVpnPia.new(Log.new(queue: Queue.new))
+  OpenVpnGtk.new
   Gtk.main
 end
 
