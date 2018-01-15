@@ -31,137 +31,10 @@ require 'yaml'                  # YAML support
 # Gems available in package form from Arch or cyberlinux
 begin
   require 'colorize'            # color output: colorize
-  require 'cmds'                # commands for command line params
+  require 'utils'               # commands for command line params
 rescue Exception => e
   mod = e.message.split(' ').last.sub('/', '-')
   !puts("Error: install missing package with 'sudo pacman -S ruby-#{mod}'") and exit
-end
-
-Token = Struct.new(:str, :color)
-ColorMap = {
-  "30" => "black",
-  "31" => "red",
-  "32" => "green",
-  "33" => "yellow",
-  "34" => "blue",
-  "35" => "magenta",
-  "36" => "cyan",
-  "37" => "white",
-  "39" => "gray88"   # default
-}
-
-class Log
-  # @param log_path [String] path to log file
-  # @param log_queue [Queue] optional queue to log to
-  def initialize(log_path:nil, log_queue:nil)
-    @path = nil
-    @path = File.expand_path(log_path) if log_path
-    @queue = log_queue
-
-    # Open log file creating directory if necessary
-    if @path
-      FileUtils.mkdir_p(File.dirname(@path)) if !File.exist?(File.dirname(@path))
-      @file = File.open(@path, 'a')
-      @file.sync = true
-    end
-  end
-
-  # Format the given string for use in log
-  def format(str)
-    return "#{Time.now.utc.iso8601(3)}:: #{str}"
-  end
-
-  def newline
-    @file.write("\n") if @path
-    if @queue
-      @queue << "\n"
-    else
-      $stdout.puts
-    end
-
-    return true
-  end
-
-  def print(str, notime:false)
-    str = format(str) if !notime
-    @file.write(strip_colorize(str)) if @path
-    if @queue
-      @queue << str
-    else
-      $stdout.print(str)
-    end
-
-    return true
-  end
-
-  def puts(str, notime: false)
-    str = format(str) if !notime
-    @file.write(strip_colorize(str) + "\n") if @path
-    if @queue
-      @queue << str + "\n"
-    else
-      $stdout.puts(str)
-    end
-
-    return true
-  end
-
-  # Remove an item from the queue, block until one exists
-  def pop()
-    return @queue.pop
-  end
-
-  # Check if the log queue is empty
-  def empty?
-    return @queue ? @queue.empty? : true
-  end
-
-  # Strip the ansi color codes from the given string
-  # @param str [String] string with ansi color codes
-  # @returns [String] string without any ansi codes
-  def strip_colorize(str)
-    return str.gsub(/\e\[0;[39]\d;49m/, '').gsub(/\e\[0m/, '')
-  end
-
-  # Tokenize the given colorized string
-  # @param str [String] string with ansi color codes
-  # @returns [Array] array of Token
-  def tokenize_colorize(str)
-    tokens = []
-    matches = str.to_enum(:scan, /\e\[0;[39]\d;49m(.*?[\s]*)\e\[0m/).map{Regexp.last_match}
-
-    i, istart, iend = 0, 0, 0
-    match = matches[i]
-    while istart < str.size
-      color = "39"
-      iend = str.size
-      token = str[istart..iend]
-
-      # Current token is not a match
-      if match && match.begin(0) != istart
-        iend = match.begin(0)-1
-        token = str[istart..iend]
-        istart = iend + 1
-
-      # Current token is a match
-      elsif match && match.begin(0) == istart
-        iend = match.end(0)
-        token = match.captures.first
-        color = match.to_s[/\e\[0;(\d+);49m.*/, 1]
-        i += 1; match = matches[i]
-        istart = iend
-
-      # Ending
-      else
-        istart = iend
-      end
-
-      # Create token and advance
-      tokens << Token.new(token, color)
-    end
-
-    return tokens
-  end
 end
 
 CommCmd = OpenStruct.new({
@@ -388,11 +261,12 @@ if __FILE__ == $0
   puts(opts.banner)
 
   # Create the vpn instance to work with
-  require 'io/console'
-  print("Enter Password: ")
-  pass = STDIN.noecho(&:gets).chomp
+  #require 'io/console'
+  #print("Enter Password: ")
+  #pass = STDIN.noecho(&:gets).chomp
 
-  log = Log.new
+  log = Log.init(log_path: "bob.log")
+  Log.puts("This is a test")
   comm_in = Queue.new
   config = Config.new('openvpn.yml')
   vpn = VPN.new(log, config, opts[:vpn], pass)
