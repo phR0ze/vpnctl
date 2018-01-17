@@ -26,7 +26,6 @@ require 'mkmf'                  # find_executable
 require 'ostruct'               # OpenStruct
 require 'open3'                 # Better system commands
 require 'socket'                # Networking support
-require 'yaml'                  # YAML support
 
 # Gems available in package form from Arch or cyberlinux
 begin
@@ -42,7 +41,6 @@ CommCmd = OpenStruct.new({
   vpn_up: 'vpn_up',
   vpn_down: 'vpn_down',
 })
-CommMsg = Struct.new(:cmd, :value)
 
 class Config
   class << self
