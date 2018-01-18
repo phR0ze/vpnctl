@@ -57,21 +57,19 @@ class VPN
     vpns = Config['vpns']
     raise("couldn't find 'vpns' in config") if vpns.nil?
     _vpn = vpns.find{|x| x['name'] == @vpn }
-    @user = vpn['user']
-    @route = vpn['route']
-    @openvpn_conf = vpn['conf']
-    @auth_path = File.join(File.dirname(@openvpn_conf), "#{@vpn}.auth")
-
-    # Validate configs
     raise("couldn't find '#{@vpn}' in config") if _vpn.nil?
+    @user = _vpn['user']
     raise("couldn't find 'user' in config") if @user.nil?
+    @route = _vpn['route']
     raise("couldn't find 'route' in config") if @route.nil?
-    raise("couldn't find 'conf' in config") if @conf.nil?
+    @openvpn_conf = _vpn['conf']
+    raise("couldn't find 'conf' in config") if @openvpn_conf.nil?
+    @auth_path = File.join(File.dirname(@openvpn_conf), "#{@vpn}.auth")
   end
 
   # Start and manage the vpn connection in a separate thread
-  def run
-    return Thread.new{|comm_in, comm_out|
+  def start
+    return ThreadComm.new{|comm_in, comm_out|
       count = 0
       halt = false
 
@@ -95,7 +93,7 @@ class VPN
           # (3) Log thread: Start a separate log thread drain stdout to logs
           log_thread = Thread.new{
             while line=stdout.gets do
-              line.include?("Initialization Sequence Completed")
+              if line.include?("Initialization Sequence Completed")
                 comm_in << ThreadMsg.new(CommCmd.vpn_up)
               end
               Log.puts("#{'OVPN:'.colorize(:yellow)} #{line.strip}")
@@ -113,7 +111,7 @@ class VPN
               if msg.cmd == CommCmd.vpn_up && !vpn_started
                 vpn_started = true
                 Log.puts("VPN #{@vpn.colorize(:cyan)} is up and running")
-                comm_out << CommMsg.new(CommCmd.vpn_up)
+                comm_out << ThreadMsg.new(CommCmd.vpn_up)
 
                 # Add any routes from the configuration
                 tun_ip = Socket.getifaddrs.find{|x| x.addr and x.name == 'tun0' and x.addr.ipv4?}.addr.ip_address
@@ -141,7 +139,7 @@ class VPN
         # Log exceptions
         rescue Exception => e
           Log.puts("#{e.to_s}".colorize(:red))
-          comm_out << CommMsg.new(CommCmd.tun_down)
+          comm_out << ThreadMsg.new(CommCmd.tun_down)
 
         # Clean up on errors and try again
         ensure
@@ -155,10 +153,10 @@ class VPN
 
           # Wait for log to drain then send out halt notification
           sleep(0.25)
-          while !@log.empty? do
+          while !Log.empty? do
             sleep(0.25)
           end
-          comm_out << CommMsg.new(CommCmd.halt) if halt
+          comm_out << ThreadMsg.new(CommCmd.halt) if halt
         end
 
         # Retry sleep logic
@@ -185,9 +183,9 @@ class VPN
 
     #if status
     if $?.exitstatus == 0
-      Log.puts("...success!".colorize(:green), notime:true)
+      Log.puts("...success!".colorize(:green), stamp:false)
     else
-      Log.puts("...failed!".colorize(:red), notime:true)
+      Log.puts("...failed!".colorize(:red), stamp:false)
       Log.puts(out.colorize(:red)) and exit if die
     end
 
@@ -224,15 +222,15 @@ if __FILE__ == $0
   # Start the VPN
   if opts[:start]
     begin
-      vpn = VPN.new(opts[:vpn], pass).run
+      vpn = VPN.new(opts[:vpn], pass).start
       Log.puts("MGMT: Waiting for VPN to halt".colorize(:magenta))
       vpn.join
     rescue Interrupt
-      Log.puts(notime:true)
+      Log.puts(stamp:false)
       Log.puts("MGMT: Halting VPN".colorize(:magenta))
       vpn.push(CommCmd.halt)
       vpn.pop
-      log.puts("MGMT: VPN Halted".colorize(:magenta))
+      Log.puts("MGMT: VPN Halted".colorize(:magenta))
     end
   end
 end
