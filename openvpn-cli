@@ -42,13 +42,6 @@ CommCmd = OpenStruct.new({
   vpn_down: 'vpn_down',
 })
 
-      #vpn = vpns.find{|x| x['name'] == @vpn }
-      #raise("couldn't find '#{@vpn}' in config") if vpn.nil?
-      #@username = vpn['user']
-      #@openvpn_conf = vpn['conf']
-      #@route = vpn['route']
-      #@auth_path = File.join(File.dirname(@openvpn_conf), "#{@vpn}.auth")
-
 class VPN
   # Initialize this VPN instance
   # @param vpn [String] name of the vpn to use
@@ -58,29 +51,38 @@ class VPN
     Log.puts("Error: IPForward=kernel must be set!") and exit unless Net.ip_forward?
 
     @vpn = vpn
-    @password = pass
-    Log.puts(Config['vpns'])
-    exit
+    @pass = pass
+
+    # Get configs
+    vpns = Config['vpns']
+    raise("couldn't find 'vpns' in config") if vpns.nil?
+    _vpn = vpns.find{|x| x['name'] == @vpn }
+    @user = vpn['user']
+    @route = vpn['route']
+    @openvpn_conf = vpn['conf']
+    @auth_path = File.join(File.dirname(@openvpn_conf), "#{@vpn}.auth")
+
+    # Validate configs
+    raise("couldn't find '#{@vpn}' in config") if _vpn.nil?
+    raise("couldn't find 'user' in config") if @user.nil?
+    raise("couldn't find 'route' in config") if @route.nil?
+    raise("couldn't find 'conf' in config") if @conf.nil?
   end
 
   # Start and manage the vpn connection in a separate thread
-  # @returns [ThreadComm] management thread
   def run
-
-    # (1) VPN thread: manage communication with consumers
-    comm_out = Queue.new
-    vpn_thread = Thread.new{
+    return Thread.new{|comm_in, comm_out|
       count = 0
       halt = false
 
       while !halt do
         begin
           # Write out the auth file for OpenVPN to read
-          File.open(@config.auth_path, "w", 0600){|f| f.puts(@username); f.puts(@password)}
+          File.open(@auth_path, "w", 0600){|f| f.puts(@user); f.puts(@pass)}
 
           retry_str = " - retry #{count}" if count > 0
-          @log.puts("Starting the VPN connection#{retry_str}".colorize(:yellow))
-          @log.puts("Using OpenVPN config #{@openvpn_conf.colorize(:cyan)}")
+          Log.puts("Starting the VPN connection#{retry_str}".colorize(:yellow))
+          Log.puts("Using OpenVPN config #{@openvpn_conf.colorize(:cyan)}")
 
           # (2) OpenVPN thread: manages the openvpn process
           resolved_script = "/etc/openvpn/scripts/update-systemd-resolved"
@@ -88,44 +90,40 @@ class VPN
           cmd = "openvpn --config #{@openvpn_conf} --setenv '#{env_path}' --script-security 2 "
           cmd += "--up #{resolved_script} --down #{resolved_script} --down-pre "
           cmd += "--auth-user-pass #{@auth_path}"
-          stdin, stdout, openvpn_thread = Open3.popen2e("bash -c '#{@proxy}#{cmd}'")
+          stdin, stdout, openvpn_thread = Open3.popen2e("bash -c '#{Net.proxy_export}#{cmd}'")
 
           # (3) Log thread: Start a separate log thread drain stdout to logs
           log_thread = Thread.new{
             while line=stdout.gets do
-              if line.include?("Initialization Sequence Completed")
-                comm_in << CommMsg.new(CommCmd.vpn_up, nil) 
-              elsif line.include?("Enter Auth Username:")
-                @log.puts("Triggered Username")
-              elsif line.include?("Enter Auth Password:")
-                @log.puts("Triggered Password")
+              line.include?("Initialization Sequence Completed")
+                comm_in << ThreadMsg.new(CommCmd.vpn_up)
               end
-              @log.puts("#{'OVPN:'.colorize(:yellow)} #{line.strip}")
+              Log.puts("#{'OVPN:'.colorize(:yellow)} #{line.strip}")
             end
           }
 
           # Manage thread communication and actions
           vpn_started = false
           while true do
-            @log.puts("Waiting for vpn #{@vpn.colorize(:cyan)} to be started...") if !vpn_started
+            Log.puts("Waiting for vpn #{@vpn.colorize(:cyan)} to be started...") if !vpn_started
             if !comm_in.empty?
               msg = comm_in.pop
               
               # Wait for tunnel to be created
               if msg.cmd == CommCmd.vpn_up && !vpn_started
                 vpn_started = true
-                @log.puts("VPN #{@vpn.colorize(:cyan)} is up and running")
-                comm_out << CommMsg.new(CommCmd.vpn_up, nil)
+                Log.puts("VPN #{@vpn.colorize(:cyan)} is up and running")
+                comm_out << CommMsg.new(CommCmd.vpn_up)
 
                 # Add any routes from the configuration
                 tun_ip = Socket.getifaddrs.find{|x| x.addr and x.name == 'tun0' and x.addr.ipv4?}.addr.ip_address
-                @log.print("Adding route #{@route.colorize(:cyan)} for #{tun_ip.colorize(:cyan)} on tun0")
+                Log.print("Adding route #{@route.colorize(:cyan)} for #{tun_ip.colorize(:cyan)} on tun0")
                 exec_with_status("ip route add #{@route} via #{tun_ip} dev tun0")
               end
 
               # Terminate
               if msg.cmd == CommCmd.halt
-                @log.puts("Halting the management thread")
+                Log.puts("Halting the management thread")
                 raise SystemExit
               end
             else
@@ -142,8 +140,8 @@ class VPN
 
         # Log exceptions
         rescue Exception => e
-          @log.puts("#{e.to_s}".colorize(:red))
-          comm_out << CommMsg.new(CommCmd.tun_down, nil)
+          Log.puts("#{e.to_s}".colorize(:red))
+          comm_out << CommMsg.new(CommCmd.tun_down)
 
         # Clean up on errors and try again
         ensure
@@ -160,21 +158,19 @@ class VPN
           while !@log.empty? do
             sleep(0.25)
           end
-          comm_out << CommMsg.new(CommCmd.halt, nil) if halt
+          comm_out << CommMsg.new(CommCmd.halt) if halt
         end
 
         # Retry sleep logic
         if halt
-          @log.puts("System exit or user terminated!".colorize(:yellow))
+          Log.puts("System exit or user terminated!".colorize(:yellow))
         else
           count += 1
-          @log.puts("OpenVPN terminated/disconnected waiting 10".colorize(:red))
+          Log.puts("OpenVPN terminated/disconnected waiting 10".colorize(:red))
           sleep(10)
         end
       end
     }
-
-    return vpn_thread, comm_out
   end
 
   # Execute the shell command and print status
@@ -189,10 +185,10 @@ class VPN
 
     #if status
     if $?.exitstatus == 0
-      @log.puts("...success!".colorize(:green), notime:true)
+      Log.puts("...success!".colorize(:green), notime:true)
     else
-      @log.puts("...failed!".colorize(:red), notime:true)
-      @log.puts(out.colorize(:red)) and exit if die
+      Log.puts("...failed!".colorize(:red), notime:true)
+      Log.puts(out.colorize(:red)) and exit if die
     end
 
     return status
@@ -218,26 +214,24 @@ if __FILE__ == $0
   puts(opts.banner)
 
   # Create the vpn instance to work with
-  #require 'io/console'
-  #print("Enter Password: ")
-  #pass = STDIN.noecho(&:gets).chomp
-  pass = 'test'
+  require 'io/console'
+  print("Enter Password: ")
+  pass = STDIN.noecho(&:gets).chomp
 
   # Init utils
   Config.init('openvpn.yml')
-  vpn = VPN.new(opts[:vpn], pass)
 
   # Start the VPN
   if opts[:start]
     begin
-      thread, comm_out = vpn.run(comm_in)
-      log.puts("MGMT: Waiting for VPN to halt".colorize(:magenta))
-      thread.join
+      vpn = VPN.new(opts[:vpn], pass).run
+      Log.puts("MGMT: Waiting for VPN to halt".colorize(:magenta))
+      vpn.join
     rescue Interrupt
-      log.newline
-      log.puts("MGMT: Halting VPN".colorize(:magenta))
-      comm_in << CommMsg.new(CommCmd.halt, nil)
-      comm_out.pop
+      Log.puts(notime:true)
+      Log.puts("MGMT: Halting VPN".colorize(:magenta))
+      vpn.push(CommCmd.halt)
+      vpn.pop
       log.puts("MGMT: VPN Halted".colorize(:magenta))
     end
   end
