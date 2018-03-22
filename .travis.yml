@@ -1,8 +1,12 @@
 language: ruby
-rvm:
-  - 2.5.0
 sudo: false
 dist: trusty
+rvm: 2.5
+
+# Update rubygems to fix bundler issue
+# https://github.com/travis-ci/travis-ci/issues/8978
+before_install:
+  - gem update --system
 
 # Configure notifications
 notifications:
