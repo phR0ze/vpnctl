@@ -1,6 +1,8 @@
 # openvpn-gtk
 Simple GTK3 based GUI for openvpn
 
+[![Build Status](https://travis-ci.org/phR0ze/openvpn-gtk.svg)](https://travis-ci.org/phR0ze/openvpn-gtk)
+
 # Deploy App
 ```bash
 bundler install --system
