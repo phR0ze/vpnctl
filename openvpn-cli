@@ -20,21 +20,12 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 
-require 'time'                  # iso8601 time format
-require 'fileutils'             # advanced file utils: FileUtils
-require 'mkmf'                  # find_executable
 require 'ostruct'               # OpenStruct
 require 'open3'                 # Better system commands
 require 'socket'                # Networking support
 
-# Gems available in package form from Arch or cyberlinux
-begin
-  require 'colorize'            # color output: colorize
-  require 'nub'                 # some basic utils
-rescue Exception => e
-  mod = e.message.split(' ').last.sub('/', '-')
-  !puts("Error: install missing package with 'sudo pacman -S ruby-#{mod}'") and exit
-end
+require 'colorize'              # Color output
+require 'nub'                   # Commands
 
 CommCmd = OpenStruct.new({
   halt: 'halt',
