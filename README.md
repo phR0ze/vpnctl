@@ -2,6 +2,8 @@
 Simple GTK3 based GUI for openvpn
 
 [![Build Status](https://travis-ci.org/phR0ze/openvpn-gtk.svg)](https://travis-ci.org/phR0ze/openvpn-gtk)
+[![Coverage Status](https://coveralls.io/repos/github/phR0ze/openvpn-gtk/badge.svg?branch=master)](https://coveralls.io/github/phR0ze/openvpn-gtk?branch=master)
+[![Dependency Status](https://beta.gemnasium.com/badges/github.com/phR0ze/openvpn-gtk.svg)](https://beta.gemnasium.com/projects/github.com/phR0ze/openvpn-gtk)
 
 # Deploy App
 ```bash
