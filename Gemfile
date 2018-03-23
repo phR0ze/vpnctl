@@ -21,8 +21,7 @@
 
 source 'https://rubygems.org'
 
-gem 'colorize', '>= 0.8.1'
-gem 'minitest', '>= 5.11.3'
-gem 'rake'
+# Specify gem dependencies in the gemspec so RubyGems picks them up for the gems repo
+gemspec
 
 # vim: ft=ruby:ts=2:sw=2:sts=2

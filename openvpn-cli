@@ -30,7 +30,7 @@ require 'socket'                # Networking support
 # Gems available in package form from Arch or cyberlinux
 begin
   require 'colorize'            # color output: colorize
-  require 'utils'               # commands for command line params
+  require 'nub'                 # some basic utils
 rescue Exception => e
   mod = e.message.split(' ').last.sub('/', '-')
   !puts("Error: install missing package with 'sudo pacman -S ruby-#{mod}'") and exit
