@@ -41,8 +41,7 @@ Configuration explained:
 The VPN will be established with Split DNS resolution if the vpn config contains DNS settings. Once this has
 occurred the ***routes*** in the configuration will be added per the new tun0 interface.
 
-Run the CLI
-
+Execute via CLI
 ```bash
-sudo ./openvpn-cli start --vpn=testvpn
+sudo ./openvpn-cli start testvpn
 ```
