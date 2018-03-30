@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.files       = ['openvpn-gtk', 'openvpn-cli']
 
   # Runtime dependencies
-  spec.add_dependency('nub', '>= 0.0.32')
+  spec.add_dependency('nub', '>= 0.0.36')
   spec.add_dependency('minitest', '>= 5.11.3')
   spec.add_dependency('rake', '~> 12.0')
 
