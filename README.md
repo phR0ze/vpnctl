@@ -10,6 +10,10 @@ Simple GTK3 based GUI for openvpn
 * [Install](#install)
 * [Configure](#configure)
 * [Deploy](#deploy)
+    * [CLI](#cli)
+    * [GUI](#gui)
+* [Development](#development)
+    * [GTK+ Glade](#gtk-glade)
 
 ## Install <a name="install"></a>
 ```bash
@@ -44,7 +48,26 @@ Configuration explained:
 The VPN will be established with Split DNS resolution if the vpn config contains DNS settings. Once this has
 occurred the ***routes*** in the configuration will be added per the new tun0 interface.
 
+### CLI <a name="cli"></a>
 Execute via CLI
 ```bash
 sudo ./openvpn-cli start testvpn
 ```
+
+### GUI <a name="gui"></a>
+The GUI is a GTK+ app that wraps the CLI and communicates via message queues.
+
+## Development <a name="development"></a>
+
+### GTK+ Glade <a name="gtk-glade"></a>
+The intent with the GUI wrapper is to provide a system icon with a menu and icon status. The tray
+icon will show my custom white icon when running but not enabled and a green version when enabled
+and a red version when disabled.
+
+**Menu**
+* ***Enable***
+* ***Disable***
+* --------------
+* ***Settings***
+* ***Logs***
+* ***Quit***

@@ -76,8 +76,8 @@ class VPN
           File.open(@ovpn_auth, "w", 0600){|f| f.puts(@user); f.puts(@pass)}
 
           retry_str = " - retry #{retry_cnt}" if retry_cnt > 0
-          Log.puts("Starting the VPN connection#{retry_str}".colorize(:yellow))
-          Log.puts("Using OpenVPN config #{@ovpn_conf.colorize(:cyan)}")
+          Log.info("Starting the VPN connection#{retry_str}".colorize(:yellow))
+          Log.info("Using OpenVPN config #{@ovpn_conf.colorize(:cyan)}")
 
           # (2) OpenVPN thread: manages the openvpn process
           resolved_script = "/etc/openvpn/scripts/update-systemd-resolved"
@@ -93,21 +93,21 @@ class VPN
               if line.include?("Initialization Sequence Completed")
                 comm_in << ThreadMsg.new(CommCmd.vpn_up)
               end
-              Log.puts("#{'OVPN:'.colorize(:yellow)} #{line.strip}")
+              Log.info("#{'OVPN:'.colorize(:yellow)} #{line.strip}")
             end
           }
 
           # Manage thread communication and actions
           vpn_started = false
           while true do
-            Log.puts("Waiting for vpn #{@vpn.colorize(:cyan)} to be started...") if !vpn_started
+            Log.info("Waiting for vpn #{@vpn.colorize(:cyan)} to be started...") if !vpn_started
             if !comm_in.empty?
               msg = comm_in.pop
               
               # Wait for tunnel to be created
               if msg.cmd == CommCmd.vpn_up && !vpn_started
                 vpn_started = true
-                Log.puts("VPN #{@vpn.colorize(:cyan)} is up and running")
+                Log.info("VPN #{@vpn.colorize(:cyan)} is up and running")
                 comm_out << ThreadMsg.new(CommCmd.vpn_up)
 
                 # Add any routes from the configuration
@@ -120,7 +120,7 @@ class VPN
 
               # Terminate
               if msg.cmd == CommCmd.halt
-                Log.puts("Halting the management thread")
+                Log.warn("Halting the management thread")
                 raise SystemExit
               end
             else
@@ -137,7 +137,7 @@ class VPN
 
         # Log exceptions
         rescue Exception => e
-          Log.puts("#{e.to_s}".colorize(:red))
+          Log.error("#{e.to_s}".colorize(:red))
           comm_out << ThreadMsg.new(CommCmd.tun_down)
 
         # Clean up on errors and try again
