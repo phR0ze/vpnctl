@@ -1,4 +1,5 @@
 *.gem
 *.swp
+*.ui~
 Gemfile.lock
 openvpn.yml

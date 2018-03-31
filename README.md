@@ -25,10 +25,10 @@ bundle install --system
     ```yaml
     vpns:
       - name: testvpn
-        user: testuser
-        pass:
-          mode: ask
-          value:
+        logon:
+          type: Ask for password
+          user: testuser
+          pass:
         routes:
           - 10.33.0.0/16
         conf: /etc/openvpn/client/testvpn.ovpn
