@@ -34,6 +34,8 @@ CommCmd = OpenStruct.new({
 })
 
 class VPN
+  Pass = Struct.new(:pass, :mode)
+
   # Initialize this VPN instance
   # @param vpn [String] name of the vpn to use
   # @param pass [String] password to use with the VPN

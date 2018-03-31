@@ -22,6 +22,9 @@ bundle install --system
     vpns:
       - name: testvpn
         user: testuser
+        pass:
+          mode: ask
+          value:
         routes:
           - 10.33.0.0/16
         conf: /etc/openvpn/client/testvpn.ovpn
