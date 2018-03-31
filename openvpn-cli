@@ -40,8 +40,8 @@ class VPN
   # @param vpn [String] name of the vpn to use
   # @param pass [String] password to use with the VPN
   def initialize(vpn, pass)
-    Log.puts("Error: must be executed as root".colorize(:red)) and exit unless User.root?
-    Log.puts("Error: IPForward=kernel must be set!") and exit unless Net.ip_forward?
+    Log.die("must be executed as root!") unless User.root?
+    Log.die("IPForward=kernel must be set!") unless Net.ip_forward?
 
     # Configs
     @vpn = vpn
@@ -76,7 +76,7 @@ class VPN
           File.open(@ovpn_auth, "w", 0600){|f| f.puts(@user); f.puts(@pass)}
 
           retry_str = " - retry #{retry_cnt}" if retry_cnt > 0
-          Log.info("Starting the VPN connection#{retry_str}".colorize(:yellow))
+          Log.warn("Starting the VPN connection#{retry_str}")
           Log.info("Using OpenVPN config #{@ovpn_conf.colorize(:cyan)}")
 
           # (2) OpenVPN thread: manages the openvpn process
@@ -137,7 +137,7 @@ class VPN
 
         # Log exceptions
         rescue Exception => e
-          Log.error("#{e.to_s}".colorize(:red))
+          Log.error(e.to_s)
           comm_out << ThreadMsg.new(CommCmd.tun_down)
 
         # Clean up on errors and try again
@@ -160,10 +160,10 @@ class VPN
 
         # Retry sleep logic
         if halt
-          Log.puts("System exit or user terminated!".colorize(:yellow))
+          Log.warn("System exit or user terminated!")
         else
           retry_cnt += 1
-          Log.puts("OpenVPN terminated/disconnected waiting 10".colorize(:red))
+          Log.warn("OpenVPN terminated/disconnected waiting 10")
           sleep(10)
         end
       end
@@ -218,14 +218,14 @@ if __FILE__ == $0
   if cmdr[:start]
     begin
       vpn = VPN.new(cmdr[:start][:start0], pass).start
-      Log.puts("MGMT: Waiting for VPN to halt".colorize(:magenta))
+      Log.info("MGMT: Waiting for VPN to halt".colorize(:magenta))
       vpn.join
     rescue Interrupt
       Log.puts(stamp:false)
-      Log.puts("MGMT: Halting VPN".colorize(:magenta))
+      Log.info("MGMT: Halting VPN".colorize(:magenta))
       vpn.push(CommCmd.halt)
       vpn.pop
-      Log.puts("MGMT: VPN Halted".colorize(:magenta))
+      Log.info("MGMT: VPN Halted".colorize(:magenta))
     end
   end
 end
