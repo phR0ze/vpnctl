@@ -25,13 +25,13 @@ bundle install --system
     ```yaml
     vpns:
       - name: testvpn
-        logon:
+        login:
           type: Ask for password
           user: testuser
           pass:
         routes:
           - 10.33.0.0/16
-        conf: /etc/openvpn/client/testvpn.ovpn
+        ovpn: /etc/openvpn/client/testvpn.ovpn
     ```
 2. Revoke read permissions for groups and others
     ```bash

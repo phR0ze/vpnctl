@@ -27,6 +27,11 @@ require 'socket'                # Networking support
 require 'colorize'              # Color output
 require 'nub'                   # Commands
 
+PassType = {
+  'Ask for password' => :ask,
+  'Save password' => :save
+}
+
 CommCmd = OpenStruct.new({
   halt: 'halt',
   vpn_up: 'vpn_up',
@@ -34,34 +39,42 @@ CommCmd = OpenStruct.new({
 })
 
 class VPN
-  Pass = Struct.new(:pass, :mode)
+  attr_reader(:config)
+
+  Login = Struct.new(:type, :user, :pass)
+  Vpn = Struct.new(:name, :login, :routes, :ovpn, :auth)
 
   # Initialize this VPN instance
-  # @param vpn [String] name of the vpn to use
-  # @param pass [String] password to use with the VPN
-  def initialize(vpn, pass)
+  # @param name [String] name of the vpn to use
+  def initialize(name)
     Log.die("must be executed as root!") unless User.root?
     Log.die("IPForward=kernel must be set!") unless Net.ip_forward?
 
-    # Configs
-    @vpn = vpn
-    @pass = pass
-    @user = nil
-    @routes = []
-    @ovpn_conf = nil
+    @config = load_vpn(name)
+  end
 
-    # Load/validate configs
+  # Load/validate configs
+  # @param name [String] name of the vpn to use
+  # @returns vpn [Vpn] struct containing the vpn properties
+  def load_vpn(name)
     vpns = Config['vpns']
     raise("couldn't find 'vpns' in config") if vpns.nil?
-    _vpn = vpns.find{|x| x['name'] == @vpn }
-    raise("couldn't find '#{@vpn}' in config") if _vpn.nil?
-    @user = _vpn['user']
-    raise("couldn't find 'user' in config") if @user.nil?
-    @routes = _vpn['routes']
-    raise("couldn't find 'routes' in config") if @routes.nil?
-    @ovpn_conf = _vpn['conf']
-    raise("couldn't find 'conf' in config") if @ovpn_conf.nil?
-    @ovpn_auth = File.join(File.dirname(@ovpn_conf), "#{@vpn}.auth")
+    vpn = vpns.find{|x| x['name'] == name }
+    raise("couldn't find '#{name}' in config") if vpn.nil?
+    login = vpn['login']
+    raise("couldn't find 'login' in config") if login.nil?
+    type = login['type']
+    raise("couldn't find 'type' in config") if type.nil?
+    user = login['user']
+    raise("couldn't find 'user' in config") if user.nil?
+    pass = login['pass']
+    routes = vpn['routes']
+    raise("couldn't find 'routes' in config") if routes.nil?
+    ovpn = vpn['ovpn']
+    raise("couldn't find 'ovpn' in config") if ovpn.nil?
+
+    return Vpn.new(name, Login.new(type, user, pass),
+      routes || [], ovpn, File.join(File.dirname(ovpn), "#{name}.auth"))
   end
 
   # Start and manage the vpn connection in a separate thread
@@ -73,18 +86,21 @@ class VPN
       while !halt do
         begin
           # Write out the auth file for OpenVPN to read
-          File.open(@ovpn_auth, "w", 0600){|f| f.puts(@user); f.puts(@pass)}
+          File.open(@config.auth, "w", 0600){|f|
+            f.puts(@config.login.user)
+            f.puts(@config.login.pass)
+          }
 
           retry_str = " - retry #{retry_cnt}" if retry_cnt > 0
           Log.warn("Starting the VPN connection#{retry_str}")
-          Log.info("Using OpenVPN config #{@ovpn_conf.colorize(:cyan)}")
+          Log.info("Using OpenVPN config #{@config.ovpn.colorize(:cyan)}")
 
           # (2) OpenVPN thread: manages the openvpn process
           resolved_script = "/etc/openvpn/scripts/update-systemd-resolved"
           env_path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-          cmd = "openvpn --config #{@ovpn_conf} --setenv '#{env_path}' --script-security 2 "
+          cmd = "openvpn --config #{@config.ovpn} --setenv '#{env_path}' --script-security 2 "
           cmd += "--up #{resolved_script} --down #{resolved_script} --down-pre "
-          cmd += "--auth-user-pass #{@ovpn_auth}"
+          cmd += "--auth-user-pass #{@config.auth}"
           stdin, stdout, openvpn_thread = Open3.popen2e("bash -c '#{Net.proxy_export}#{cmd}'")
 
           # (3) Log thread: Start a separate log thread drain stdout to logs
@@ -100,19 +116,19 @@ class VPN
           # Manage thread communication and actions
           vpn_started = false
           while true do
-            Log.info("Waiting for vpn #{@vpn.colorize(:cyan)} to be started...") if !vpn_started
+            Log.info("Waiting for vpn #{@config.name.colorize(:cyan)} to be started...") if !vpn_started
             if !comm_in.empty?
               msg = comm_in.pop
               
               # Wait for tunnel to be created
               if msg.cmd == CommCmd.vpn_up && !vpn_started
                 vpn_started = true
-                Log.info("VPN #{@vpn.colorize(:cyan)} is up and running")
+                Log.info("VPN #{@config.name.colorize(:cyan)} is up and running")
                 comm_out << ThreadMsg.new(CommCmd.vpn_up)
 
                 # Add any routes from the configuration
                 tun_ip = Socket.getifaddrs.find{|x| x.addr and x.name == 'tun0' and x.addr.ipv4?}.addr.ip_address
-                @routes.each{|route|
+                @config.routes.each{|route|
                   Log.print("Adding route #{route.colorize(:cyan)} for #{tun_ip.colorize(:cyan)} on tun0")
                   exec_with_status("ip route add #{route} via #{tun_ip} dev tun0")
                 }
@@ -142,7 +158,7 @@ class VPN
 
         # Clean up on errors and try again
         ensure
-          File.delete(@ovpn_auth) if File.exist?(@ovpn_auth)
+          File.delete(@config.auth) if File.exist?(@config.auth)
           stdin.close if !stdin.nil?
           stdout.close if !stdout.nil?
           if openvpn_thread and openvpn_thread.alive?
@@ -199,32 +215,28 @@ if __FILE__ == $0
   app = 'openvpn-cli'
   version = '0.0.1'
   examples = "Start VPN: sudo ./#{app} start ospra\n".colorize(:green)
-  cmdr = Commander.new(app, version, examples:examples)
+  cmdr = Commander.new(app:app, version:version, examples:examples)
   cmdr.add('start', 'Start VPN service', options:[
     Option.new(nil, 'VPN name to lookup in config')
   ])
   cmdr.parse!
 
-  # Create the vpn instance to work with
-  require 'io/console'
-  print("Enter Password: ")
-  pass = STDIN.noecho(&:gets).chomp
-  puts
-
-  # Init utils
-  Config.init('openvpn.yml')
-
   # Start the VPN
+  Config.init('openvpn.yml')
   if cmdr[:start]
     begin
-      vpn = VPN.new(cmdr[:start][:start0], pass).start
+      vpn = VPN.new(cmdr[:start][:start0])
+      if PassType[vpn.config.login.type] == :ask
+        vpn.config.login.pass = Sys.getpass
+      end
+      vpn_thread = vpn.start
       Log.info("MGMT: Waiting for VPN to halt".colorize(:magenta))
-      vpn.join
+      vpn_thread.join
     rescue Interrupt
       Log.puts(stamp:false)
       Log.info("MGMT: Halting VPN".colorize(:magenta))
-      vpn.push(CommCmd.halt)
-      vpn.pop
+      vpn_thread.push(CommCmd.halt)
+      vpn_thread.pop
       Log.info("MGMT: VPN Halted".colorize(:magenta))
     end
   end
