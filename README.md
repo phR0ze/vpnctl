@@ -1,9 +1,9 @@
-# openvpn-gtk
-Simple GTK3 based GUI for openvpn
+# vpnctl
+Simple GUI wrapper for openvpn automation
 
-[![Build Status](https://travis-ci.org/phR0ze/openvpn-gtk.svg)](https://travis-ci.org/phR0ze/openvpn-gtk)
-[![Coverage Status](https://coveralls.io/repos/github/phR0ze/openvpn-gtk/badge.svg?branch=master)](https://coveralls.io/github/phR0ze/openvpn-gtk?branch=master)
-[![Dependency Status](https://beta.gemnasium.com/badges/github.com/phR0ze/openvpn-gtk.svg)](https://beta.gemnasium.com/projects/github.com/phR0ze/openvpn-gtk)
+[![Build Status](https://travis-ci.org/phR0ze/vpnctl.svg)](https://travis-ci.org/phR0ze/vpnctl)
+[![Coverage Status](https://coveralls.io/repos/github/phR0ze/vpnctl/badge.svg?branch=master)](https://coveralls.io/github/phR0ze/vpnctl?branch=master)
+[![Dependency Status](https://beta.gemnasium.com/badges/github.com/phR0ze/vpnctl.svg)](https://beta.gemnasium.com/projects/github.com/phR0ze/vpnctl)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ### Table of Contents
@@ -13,7 +13,7 @@ Simple GTK3 based GUI for openvpn
     * [CLI](#cli)
     * [GUI](#gui)
 * [Development](#development)
-    * [GTK+ Glade](#gtk-glade)
+    * [Qt4](#qt4)
 
 ## Install <a name="install"></a>
 ```bash
@@ -55,11 +55,11 @@ sudo ./openvpn-cli start testvpn
 ```
 
 ### GUI <a name="gui"></a>
-The GUI is a GTK+ app that wraps the CLI and communicates via message queues.
+The GUI is a Qt4 app that wraps the CLI and communicates via message queues.
 
 ## Development <a name="development"></a>
 
-### GTK+ Glade <a name="gtk-glade"></a>
+### Qt4 <a name="qt4"></a>
 The intent with the GUI wrapper is to provide a system icon with a menu and icon status. The tray
 icon will show my custom white icon when running but not enabled and a green version when enabled
 and a red version when disabled.
