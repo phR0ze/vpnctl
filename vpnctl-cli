@@ -38,7 +38,7 @@ CommCmd = OpenStruct.new({
   vpn_down: 'vpn_down',
 })
 
-class VPN
+class VpnCtlCli
   attr_reader(:config)
 
   Login = Struct.new(:type, :user, :pass)
@@ -222,10 +222,10 @@ if __FILE__ == $0
   cmdr.parse!
 
   # Start the VPN
-  Config.init('openvpn.yml')
+  Config.init('vpnctl.yml')
   if cmdr[:start]
     begin
-      vpn = VPN.new(cmdr[:start][:start0])
+      vpn = VpnCtlCli.new(cmdr[:start][:start0])
       if PassType[vpn.config.login.type] == :ask
         vpn.config.login.pass = Sys.getpass
       end

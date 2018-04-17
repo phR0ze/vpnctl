@@ -11,6 +11,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency('nub', '>= 0.0.53')
   spec.add_dependency('minitest', '>= 5.11.3')
   spec.add_dependency('rake', '~> 12.0')
+  spec.add_dependency('qtbindings', '~> 4.8.6.4')
 
   # Development dependencies
   spec.add_development_dependency('coveralls', '~> 0.8')
