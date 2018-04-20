@@ -1,7 +1,8 @@
-.font_bet {
-    color: #47423f;
-    font-size: 44px;
-    font-weight: bold;
+GtkButton {
+  color: #47423f;
+  font-size: 44px;
+  font-weight: bold;
+  background-color: white;
 }
 
 GtkFrame.frame_bet {

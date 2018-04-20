@@ -28,7 +28,7 @@
               <object class="GtkImage">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="pixbuf">../icons/72x72/vpnctl.png</property>
+                <property name="pixbuf">../images/72x72/vpnctl.png</property>
                 <property name="icon_size">6</property>
               </object>
               <packing>

@@ -13,7 +13,7 @@ Simple GUI wrapper for openvpn automation
     * [CLI](#cli)
     * [GUI](#gui)
 * [Development](#development)
-    * [Qt4](#qt4)
+    * [GTK+](#gtk)
 
 ## Install <a name="install"></a>
 ```bash
@@ -55,11 +55,11 @@ sudo ./openvpn-cli start testvpn
 ```
 
 ### GUI <a name="gui"></a>
-The GUI is a Qt4 app that wraps the CLI and communicates via message queues.
+The GUI is a GTK+ app that wraps the CLI and communicates via message queues.
 
 ## Development <a name="development"></a>
 
-### Qt4 <a name="qt4"></a>
+### GTK+ <a name="gtk"></a>
 The intent with the GUI wrapper is to provide a system icon with a menu and icon status. The tray
 icon will show my custom white icon when running but not enabled and a green version when enabled
 and a red version when disabled.
