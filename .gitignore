@@ -2,5 +2,6 @@
 *.swp
 *.ui~
 *.kra~
+*.ui#
 Gemfile.lock
 openvpn.yml

@@ -1,0 +1,20 @@
+.font_bet {
+    color: #47423f;
+    font-size: 44px;
+    font-weight: bold;
+}
+
+GtkFrame.frame_bet {
+  border: 6px solid;
+  border-color: #c1c0bf
+  border-radius: 24px;
+  background-color: white;
+  box-shadow: 2px 2px 4px black inset;
+}
+
+GtkFrame.frame_grid {
+  border: 8px solid #c1c0bf;
+  border-radius: 32px;
+  background-image: -gtk-gradient (linear, left top, rigth bottom, from(#9d9a99), to(#d6d5d4));
+  box-shadow: 2px 2px 2px grey inset;
+}

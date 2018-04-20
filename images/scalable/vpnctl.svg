@@ -10,13 +10,16 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   sodipodi:docname="openvpn-pia.svg"
-   inkscape:version="0.92.2 5c3e80d, 2017-08-06"
+   sodipodi:docname="vpnctl.svg"
+   inkscape:version="0.92.2 2405546, 2018-03-11"
    version="1.1"
    inkscape:label="Pozadí"
    id="svg2"
    height="395.53989"
-   width="396.22699">
+   width="396.22699"
+   inkscape:export-filename="/home/pcrumm/Projects/vpnctl/assets/icons/72x72/vpnctl.png"
+   inkscape:export-xdpi="18.277845"
+   inkscape:export-ydpi="18.277845">
   <sodipodi:namedview
      id="base"
      pagecolor="#ffffff"
@@ -25,16 +28,16 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.98994949"
-     inkscape:cx="164.64124"
-     inkscape:cy="195.64415"
+     inkscape:cx="165.6818"
+     inkscape:cy="164.41302"
      inkscape:document-units="px"
      inkscape:current-layer="g6227"
      showgrid="false"
-     inkscape:window-width="1024"
-     inkscape:window-height="723"
-     inkscape:window-x="0"
+     inkscape:window-width="1278"
+     inkscape:window-height="1558"
+     inkscape:window-x="1280"
      inkscape:window-y="0"
-     inkscape:window-maximized="1"
+     inkscape:window-maximized="0"
      inkscape:snap-page="false"
      fit-margin-top="10"
      fit-margin-left="10"
@@ -59,7 +62,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -70,7 +73,8 @@
      inkscape:label="Vrstva 1">
     <g
        transform="translate(1492.7733,284.69093)"
-       id="g6227">
+       id="g6227"
+       style="fill:#ececec;stroke:#000000;stroke-opacity:1;stroke-width:5;stroke-miterlimit:4;stroke-dasharray:none">
       <path
          style="fill:#999999;fill-opacity:1;stroke:#000000;stroke-width:5;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;opacity:1"
          d="m -1137.8825,460.94454 c -5.7978,-1.15151 -11.0802,-2.63224 -11.7384,-3.29051 -0.6584,-0.65829 3.5697,-27.93743 9.3954,-60.62032 5.8258,-32.68289 10.7356,-61.2552 10.9106,-63.49403 0.2558,-3.27199 -1.7878,-6.02052 -10.4168,-14.00972 -8.0025,-7.40896 -11.8174,-12.35057 -14.9864,-19.41179 -12.7532,-28.41782 -0.78,-59.72308 28.1391,-73.57364 8.6864,-4.16027 11.498,-4.74378 22.8572,-4.74378 10.8646,0 14.3568,0.65827 21.6656,4.08389 18.4952,8.6687 32.1841,27.23492 34.1423,46.3071 1.8473,17.99192 -7.2342,37.60051 -23.0831,49.84067 -4.8045,3.71049 -8.3347,7.63856 -8.338,9.27768 0,1.56347 4.8498,30.33195 10.7846,63.92995 12.2911,69.58326 12.6335,63.56389 -3.7787,66.42194 -13.0572,2.27383 -52.6754,1.84023 -65.5534,-0.71744 z"
