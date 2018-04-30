@@ -94,7 +94,7 @@
                                 <property name="orientation">vertical</property>
                                 <child>
                                   <object class="GtkButton">
-                                    <property name="label" translatable="yes">button</property>
+                                    <property name="label" translatable="yes">NordVPN</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="receives_default">True</property>
@@ -210,7 +210,7 @@
             </child>
             <child>
               <object class="GtkFrame" id="vpn-content">
-                <property name="name">vpn-content-frame</property>
+                <property name="name">vpn-content-main-frame</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="hexpand">True</property>
@@ -256,6 +256,7 @@
                                   <object class="GtkEntry">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
+                                    <property name="placeholder_text" translatable="yes">Name of the VPN</property>
                                     <style>
                                       <class name="vpn-content-entry"/>
                                     </style>
@@ -297,6 +298,7 @@
                                   <object class="GtkEntry">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
+                                    <property name="placeholder_text" translatable="yes">Associated VPN config</property>
                                     <style>
                                       <class name="vpn-content-entry"/>
                                     </style>
@@ -374,6 +376,7 @@
                                   <object class="GtkEntry">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
+                                    <property name="placeholder_text" translatable="yes">Ask for password</property>
                                     <style>
                                       <class name="vpn-content-entry"/>
                                     </style>
@@ -415,6 +418,7 @@
                                   <object class="GtkEntry">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
+                                    <property name="placeholder_text" translatable="yes">VPN username</property>
                                     <style>
                                       <class name="vpn-content-entry"/>
                                     </style>
@@ -456,6 +460,7 @@
                                   <object class="GtkEntry">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
+                                    <property name="placeholder_text" translatable="yes">VPN password</property>
                                     <style>
                                       <class name="vpn-content-entry"/>
                                     </style>
@@ -528,6 +533,7 @@
                               <object class="GtkEntry">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
+                                <property name="placeholder_text" translatable="yes">e.g. 10.33.0.0./16</property>
                                 <style>
                                   <class name="vpn-content-entry"/>
                                 </style>

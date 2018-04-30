@@ -48,7 +48,11 @@ button {
 
 /* VPN Content
  *******************************************************************************/
-#vpn-content-frame {
+#vpn-content-main-frame {
+  color: #000;
+  font-size: 18px;
+  font-weight: bold;
+  font-family: 'GE Inspira';
   padding: 5px;
   border-radius: 8px;
   background-color: #999;
@@ -57,7 +61,7 @@ button {
   margin-bottom: 10px;
 }
 .vpn-content-frame-label {
-  color: blue;
+  font-size: 12px;
 }
 .vpn-content-box {
   margin-left: 8px;
@@ -67,10 +71,10 @@ button {
   margin-bottom: 8px;
 }
 .vpn-content-label {
-  color: red;
   margin-right: 10px;
 }
 .vpn-content-entry {
+  min-width: 220px;
   background-color: bisque;
 }
 
