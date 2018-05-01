@@ -158,9 +158,7 @@
                       <object class="GtkBox">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <child>
-                          <placeholder/>
-                        </child>
+                        <property name="halign">end</property>
                         <child>
                           <object class="GtkButton">
                             <property name="label">+</property>
@@ -198,7 +196,7 @@
                       </object>
                       <packing>
                         <property name="expand">False</property>
-                        <property name="fill">True</property>
+                        <property name="fill">False</property>
                         <property name="pack_type">end</property>
                         <property name="position">1</property>
                       </packing>
@@ -815,5 +813,10 @@
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkImage" id="image1">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-missing-image</property>
   </object>
 </interface>
