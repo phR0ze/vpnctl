@@ -1,4 +1,9 @@
 /* Global/Top level styles
+ *******************************************************************************
+ * https://github.com/elementary/stylesheet/blob/master/gtk-3.22/gtk-widgets.css
+ * Selectors:
+ * pseudo classes: *:hover, *:focus, *:selected, *:selected:hover, *:disabled
+ * 
  *******************************************************************************/
 #main-window {
   border-radius: 8px;
@@ -8,11 +13,11 @@
   padding: 10px;
 }
 
-/* Global button styles */
 button {
   font-size: 18px;
   font-weight: bold;
   font-family: 'GE Inspira';
+  min-width: 50px;
   border-radius: 8px;
   background-color: #ebebeb;
 }
@@ -39,16 +44,22 @@ button {
 
 /* VPN List
  *******************************************************************************/
-#vpn-list-frame {
+#vpn-list {
   padding: 5px;
   margin-right: 10px;
   border-radius: 8px;
   background-color: #999;
 }
+#add-button {
+  background-color: orange;
+}
+#delete-button {
+  background-color: purple;
+}
 
 /* VPN Content
  *******************************************************************************/
-#vpn-content-main-frame {
+#vpn-content {
   color: #000;
   font-size: 18px;
   font-weight: bold;
@@ -57,15 +68,18 @@ button {
   border-radius: 8px;
   background-color: #999;
 }
-.vpn-content-frame {
-  margin-bottom: 10px;
+#vpn-content frame {
+  margin-bottom: 8px;
 }
 .vpn-content-frame-label {
+  color: #EEE;
   font-size: 12px;
+  font-family: Arial, Helvetica, sans-serif;
 }
 .vpn-content-box {
   margin-left: 8px;
   margin-right: 8px;
+  margin-bottom: 8px;
 }
 .vpn-content-box-bottom {
   margin-bottom: 8px;
@@ -75,23 +89,41 @@ button {
 }
 .vpn-content-entry {
   min-width: 220px;
-  background-color: bisque;
+  /* background-color: bisque; */
 }
 
-/* Button bar box
+/* Footer box
  *******************************************************************************/
-#button-bar-box {
-  padding-left: 20px;
-}
-.button-bar {
+#footer, #footer button{
+  font-size: 18px;
   color: white;
 }
-#button-connect {
+#footer switch {
+  color: black;
+  padding: 2px;
+  border-radius: 8px;
+}
+#footer switch:checked {
+  color: white;
   background-color: #36a4db;
 }
-#button-save {
+#footer switch slider {
+  border-radius: 8px;
+  border: 2px solid #36a4db;
+}
+#footer label {
+  padding-left: 10px;
+  padding-right: 10px;
+}
+box.button-bar {
+  padding-left: 20px;
+}
+#connect-button {
+  background-color: #36a4db;
+}
+#save-button {
   background-color: #69c069;
 }
-#button-cancel {
+#cancel-button {
   background-color: #d85b56;
 }
