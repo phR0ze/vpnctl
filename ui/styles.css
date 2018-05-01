@@ -50,6 +50,10 @@ button {
   border-radius: 8px;
   background-color: #999;
 }
+.vpn-list-op-button {
+  padding: 0;
+  font-size: 40px;
+}
 #add-button {
   background-color: orange;
 }
@@ -112,6 +116,7 @@ button {
   border: 2px solid #36a4db;
 }
 #footer label {
+  font-size: 20px;
   padding-left: 10px;
   padding-right: 10px;
 }
