@@ -15,7 +15,7 @@
    version="1.1"
    id="SVGRoot"
    inkscape:version="0.92.2 2405546, 2018-03-11"
-   sodipodi:docname="add.svg"
+   sodipodi:docname="delete.svg"
    inkscape:export-filename="/home/pcrumm/Projects/vpnctl/images/128x128/add.png"
    inkscape:export-xdpi="96"
    inkscape:export-ydpi="96">
@@ -26,11 +26,11 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.4142136"
-     inkscape:cx="126.20489"
-     inkscape:cy="-40.607468"
+     inkscape:zoom="2.8284272"
+     inkscape:cx="61.188818"
+     inkscape:cy="51.455103"
      inkscape:document-units="px"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="layer2"
      showgrid="false"
      inkscape:window-width="1278"
      inkscape:window-height="1558"
@@ -58,7 +58,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -68,7 +68,7 @@
      inkscape:label="Layer 1"
      style="display:inline">
     <rect
-       style="fill:#69c069;fill-opacity:1;stroke:none;stroke-width:5.00031519;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       style="fill:#d85b56;fill-opacity:1;stroke:none;stroke-width:5.00031519;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        id="rect2494"
        width="128"
        height="128"
@@ -115,14 +115,6 @@
        height="73.5"
        x="-82"
        y="-136" />
-    <rect
-       id="rect881"
-       width="26"
-       height="108"
-       x="51"
-       y="10"
-       style="fill:#ffffff;stroke-width:1.018453"
-       ry="12" />
     <rect
        id="rect881-3"
        width="26"

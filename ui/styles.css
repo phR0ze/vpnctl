@@ -6,7 +6,10 @@
  * pseudo classes: *:hover, *:focus, *:selected, *:selected:hover, *:disabled
  * 
  *******************************************************************************/
+@import url("reset.css");
+
 #main-window {
+  color: black;
   border-radius: 8px;
   background-color: #484848;
 }
@@ -14,13 +17,51 @@
   padding: 10px;
 }
 
+/* Entry styling */
+entry {
+  color: black;
+  padding: 4px 5px;
+  border: 1px solid #c5c5c5;
+  border-radius: 2px;
+  background-color: #f3f3f3;
+}
+
+/* Frame styling */
+frame {
+  /* border: 1px solid white;
+  background-clip: padding-box;
+  */
+}
+
+/* Button styling */
 button {
+  color: black;
   font-size: 18px;
   font-weight: bold;
   font-family: 'GE Inspira';
-  min-width: 50px;
+  min-height: 30px;
   border-radius: 8px;
-  background-color: #ebebeb;
+  background-color: #f3f3f3;
+}
+
+/* Switch styling */
+switch {
+  color: black;
+  font-size: 18px;
+  padding: 2px;
+  min-width: 90px;
+  min-height: 30px;
+  border-radius: 8px;
+  background-color: #f3f3f3;
+}
+switch:checked {
+  color: white;
+  background-color: #36a4db;
+}
+switch slider {
+  border-radius: 8px;
+  border: 2px solid #36a4db;
+  background-color: white;
 }
 
 /* Title box
@@ -29,7 +70,7 @@ button {
   padding-left: 5px;
 }
 #title-label {
-  margin-left: 5px;
+  margin-left: 15px;
   color: #d9d9d9;
   font-size: 70px;
   font-weight: bold;
@@ -52,14 +93,14 @@ button {
   background-color: #999;
 }
 #vpn-list button {
-  min-width: 80px;
+  margin-bottom: 1px;
 }
 .vpn-list-op-button {
   color: white;
   padding: 0;
   font-size: 10px;
-  /* min-width: 32px; */
-  /* min-height: 32px;  */
+  min-width: 32px;
+  min-height: 32px; 
   border: 0px solid;
   background-size: 100% 100%;
   background-repeat: no-repeat;
@@ -70,7 +111,7 @@ button {
 }
 #delete-button {
   margin-left: 2px;
-  background-color: purple;
+  background-image: url("../images/scalable/delete.svg");
 }
 
 /* VPN Content
@@ -105,35 +146,18 @@ button {
 }
 .vpn-content-entry {
   min-width: 220px;
-  /* background-color: bisque; */
 }
 
 /* Footer box
  *******************************************************************************/
-#footer, #footer button{
-  font-size: 18px;
+#default-label {
   color: white;
-}
-#footer switch {
-  color: black;
-  padding: 2px;
-  border-radius: 8px;
-}
-#footer switch:checked {
-  color: white;
-  background-color: #36a4db;
-}
-#footer switch slider {
-  border-radius: 8px;
-  border: 2px solid #36a4db;
-}
-#footer label {
   font-size: 20px;
-  padding-left: 10px;
-  padding-right: 10px;
+  margin-left: 10px;
+  margin-right: 30px;
 }
-box.button-bar {
-  padding-left: 20px;
+#footer button {
+  color: white;
 }
 #connect-button {
   background-color: #36a4db;
