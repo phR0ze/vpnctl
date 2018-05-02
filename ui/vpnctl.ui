@@ -566,7 +566,6 @@
                             </child>
                             <style>
                               <class name="vpn-content-box"/>
-                              <class name="vpn-content-box-bottom"/>
                             </style>
                           </object>
                         </child>
@@ -580,9 +579,6 @@
                             </style>
                           </object>
                         </child>
-                        <style>
-                          <class name="vpn-content-frame"/>
-                        </style>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -600,19 +596,15 @@
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="orientation">vertical</property>
-                            <property name="homogeneous">True</property>
                             <child>
                               <object class="GtkBox">
+                                <property name="name">app-switch-box</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <child>
-                                  <object class="GtkLabel">
+                                  <object class="GtkSwitch">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">Name:</property>
-                                    <style>
-                                      <class name="vpn-content-label"/>
-                                    </style>
+                                    <property name="can_focus">True</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
@@ -621,14 +613,14 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkEntry">
+                                  <object class="GtkLabel">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
+                                    <property name="can_focus">False</property>
+                                    <property name="label" translatable="yes">Target ONLY specific apps</property>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="pack_type">end</property>
                                     <property name="position">1</property>
                                   </packing>
                                 </child>
@@ -640,35 +632,17 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkBox">
+                              <object class="GtkScrolledWindow">
+                                <property name="name">app-scrolled</property>
                                 <property name="visible">True</property>
-                                <property name="can_focus">False</property>
+                                <property name="can_focus">True</property>
+                                <property name="shadow_type">in</property>
                                 <child>
-                                  <object class="GtkLabel">
-                                    <property name="visible">True</property>
-                                    <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">Name:</property>
-                                    <style>
-                                      <class name="vpn-content-label"/>
-                                    </style>
-                                  </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="position">0</property>
-                                  </packing>
-                                </child>
-                                <child>
-                                  <object class="GtkEntry">
+                                  <object class="GtkTextView">
+                                    <property name="name">app-textview</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                   </object>
-                                  <packing>
-                                    <property name="expand">False</property>
-                                    <property name="fill">True</property>
-                                    <property name="pack_type">end</property>
-                                    <property name="position">1</property>
-                                  </packing>
                                 </child>
                               </object>
                               <packing>
@@ -692,9 +666,6 @@
                             </style>
                           </object>
                         </child>
-                        <style>
-                          <class name="vpn-content-frame"/>
-                        </style>
                       </object>
                       <packing>
                         <property name="expand">False</property>

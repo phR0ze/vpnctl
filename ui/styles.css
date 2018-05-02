@@ -17,22 +17,6 @@
   padding: 10px;
 }
 
-/* Entry styling */
-entry {
-  color: black;
-  padding: 4px 5px;
-  border: 1px solid #c5c5c5;
-  border-radius: 2px;
-  background-color: #f3f3f3;
-}
-
-/* Frame styling */
-frame {
-  /* border: 1px solid white;
-  background-clip: padding-box;
-  */
-}
-
 /* Button styling */
 button {
   color: black;
@@ -62,6 +46,34 @@ switch slider {
   border-radius: 8px;
   border: 2px solid #36a4db;
   background-color: white;
+}
+
+/* Entry styling */
+entry {
+  color: black;
+  padding: 4px 5px;
+  border: 1px solid #c5c5c5;
+  border-radius: 2px;
+  background-color: #f3f3f3;
+}
+
+/* Textview styling */
+textview {
+  padding: 5px;
+  border-radius: 4px;
+  background-color: #f3f3f3;
+}
+
+/* Scrolled window styling */
+scrolledwindow {
+  min-height: 40px;
+}
+
+/* Frame styling */
+frame {
+  /* border: 1px solid white;
+  background-clip: padding-box;
+  */
 }
 
 /* Title box
@@ -121,12 +133,9 @@ switch slider {
   font-size: 18px;
   font-weight: bold;
   font-family: 'GE Inspira';
-  padding: 5px;
+  padding: 5px 0px 0px 5px;
   border-radius: 8px;
   background-color: #999;
-}
-#vpn-content frame {
-  margin-bottom: 8px;
 }
 .vpn-content-frame-label {
   color: #EEE;
@@ -134,18 +143,24 @@ switch slider {
   font-family: Arial, Helvetica, sans-serif;
 }
 .vpn-content-box {
-  margin-left: 8px;
+  margin-left: 12px;
   margin-right: 8px;
-  margin-bottom: 8px;
-}
-.vpn-content-box-bottom {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 .vpn-content-label {
-  margin-right: 10px;
+  margin-right: 12px;
 }
 .vpn-content-entry {
   min-width: 220px;
+}
+#app-switch-box {
+  margin-top: 10px;
+}
+#app-switch-box label {
+  margin-left: 10px;
+}
+#app-scrolled {
+  margin-top: 5px;
 }
 
 /* Footer box
