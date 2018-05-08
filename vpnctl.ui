@@ -2,13 +2,7 @@
 <!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
-  <!-- interface-local-resource-path ../images -->
   <!-- interface-css-provider-path styles.css -->
-  <object class="GtkImage" id="image1">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-missing-image</property>
-  </object>
   <object class="GtkWindow" id="main-window">
     <property name="name">main-window</property>
     <property name="visible">True</property>
@@ -34,7 +28,7 @@
                 <property name="name">title-image</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="pixbuf">../images/72x72/vpnctl.png</property>
+                <property name="pixbuf">images/72x72/vpnctl.png</property>
                 <property name="icon_size">6</property>
               </object>
               <packing>

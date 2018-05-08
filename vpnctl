@@ -39,7 +39,7 @@ class VpnCtl
 #    #!puts("Error: must be executed as root user".colorize(:red)) and exit unless Process.uid.zero?
     @datapath = File.dirname(File.expand_path(__FILE__))
     @datapath = '/usr/share/vpnctl' if File.basename(@datapath) != 'vpnctl'
-    @gui_path = File.join(@datapath, 'ui')
+    @images_path = File.join(@datapath, 'images')
 #    @icon_path = File.join(@datapath, 'images/32x32')
 #
 #    @icon = File.join(@icon_path, 'vpnctl.png')
@@ -59,15 +59,25 @@ class VpnCtl
     @builder = Gtk::Builder.new
 #    @tray = create_system_tray_icon
 #    @popup_menu = create_popup_menu
-    @builder.add_from_file(File.join(@gui_path, 'vpnctl.ui'))
+    @builder.add_from_file(File.join(@datapath, 'vpnctl.ui'))
     @main = @builder.get_object("main-window")
 #    @logwin, @logview, @logiter = create_log_window
 #    @settings = create_settings_window
 
     # Configure signals
     @main.signal_connect('key_press_event'){|widget, event|
-      Gtk.main_quit if Gdk::Keyval::KEY_Escape
+      Gtk.main_quit if event.keyval == Gdk::Keyval::KEY_Escape
     }
+
+    # Initialize css for all widgets recursively
+    @css = Gtk::CssProvider.new
+    @css.load(path: File.join(@datapath, 'styles.css'))
+    applystyles = lambda{|widget|
+      widget.style_context.add_provider(@css, Gtk::StyleProvider::PRIORITY_USER)
+      return unless widget.respond_to?(:children)
+      widget.children.each{|x| applystyles.call(x)}
+    }
+    applystyles.call(@main)
   end
 
 #  # Create the system tray icon
