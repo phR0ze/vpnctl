@@ -20,13 +20,18 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 
-# Enable code coverate for CI
-if ENV['TRAVIS']
-  require 'coveralls'
-  Coveralls.wear!
-end
+require 'yaml'
+require 'minitest/autorun'
 
-require_relative 'test_model'
-require_relative 'test_vpnctlcli'
+mod = File.join(File.dirname(File.expand_path(__FILE__)), '../openvpn-cli')
+load mod
+
+class Test_VpnCtlCli < Minitest::Test
+
+  def test_config
+    puts("test")
+  end
+
+end
 
 # vim: ft=ruby:ts=2:sw=2:sts=2

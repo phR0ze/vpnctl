@@ -20,13 +20,26 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 
-# Enable code coverate for CI
-if ENV['TRAVIS']
-  require 'coveralls'
-  Coveralls.wear!
-end
+require 'minitest/autorun'
 
-require_relative 'test_model'
-require_relative 'test_vpnctlcli'
+require_relative '../lib/model'
+
+class Test_Model < Minitest::Test
+
+  def test_Login
+    login = Model::Login.new('foo', 'bar', 'dandy')
+    assert_equal('foo', login.type)
+    assert_equal('bar', login.user)
+    assert_equal('dandy', login.pass)
+  end
+
+  def test_CommCmd
+    assert_equal('halt', Model::CommCmd.halt)
+  end
+
+  def test_PassType
+    assert_equal(:ask, Model::PassType['Ask for password'])
+  end
+end
 
 # vim: ft=ruby:ts=2:sw=2:sts=2

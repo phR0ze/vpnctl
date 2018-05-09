@@ -27,17 +27,6 @@ require 'socket'                # Networking support
 require 'colorize'              # Color output
 require 'nub'                   # Commands
 
-PassType = {
-  'Ask for password' => :ask,
-  'Save password' => :save
-}
-
-CommCmd = OpenStruct.new({
-  halt: 'halt',
-  vpn_up: 'vpn_up',
-  vpn_down: 'vpn_down',
-})
-
 class VpnCtlCli
   attr_reader(:config)
 
