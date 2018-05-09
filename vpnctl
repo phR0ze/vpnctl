@@ -57,9 +57,7 @@ class VpnCtl
 #    @vpn_comm_in = nil
 #
     construct_ui
-    apply_styles
     connect_signals
-    configure_reposition
   end
 
   def construct_ui
@@ -75,6 +73,8 @@ class VpnCtl
 #    @popup_menu = create_popup_menu
 #    @logwin, @logview, @logiter = create_log_window
 #    @settings = create_settings_window
+    apply_styles
+    enable_repositioning(@main)
   end
 
   # Initialize css for all widgets recursively
@@ -100,7 +100,10 @@ class VpnCtl
   end
 
   # Setup window to be able to be repositioned
-  def configure_reposition
+  # by clicking on non-child widget area to move with dragging
+  # @param win [GtkWindow] window to enable repositioning for
+  def enable_repositioning(win)
+    id = win.object_id
 
     # Setup main window to receive events that it normally doesn't
     # To catch mouse release requires BUTTON_RELEASE_MASK and BUTTON_PRESS_MASK
@@ -109,30 +112,33 @@ class VpnCtl
     #@main.events |= Gdk::EventMask::BUTTON_RELEASE_MASK | Gdk::EventMask::BUTTON_PRESS_MASK |
     #  Gdk::EventMask::POINTER_MOTION_MASK | Gdk::EventMask::POINTER_MOTION_HINT_MASK 
     #
-    @dragging = false
-    @main.signal_connect('button_press_event'){|w,e|
-      # Left mouse == 1
-      if e.button == 1
-        @dragging = true
-        x, y = w.position
-        @x = e.x - x; @y = e.y - y
-        puts("Position x: #{@x}, y: #{@y}")
+    @reposition ||= {}
+    win.signal_connect('button_press_event'){|w,e|
+      if e.button == 1  # Left mouse
+        @reposition[id] = [e.x, e.y]
         #w.get_window.set_cursor(Gtk::Cursor.new(Gdk.CursorType, HAND2))
-        @main.grab_add
+        win.grab_add
         #@main.pointer_grab(true, Gdk::EventMask::BUTTON_RELEASE_MASK |
         #  Gdk::EventMask::BUTTON_MOTION_MASK | Gdk::EventMask::POINTER_MOTION_HINT_MASK, nil, nil, 0)
       end
     }
-    @main.signal_connect('button_release_event'){
-      @dragging = false
-      @main.grab_remove
+    win.signal_connect('button_release_event'){
+      @reposition.delete(id)
+      win.grab_remove
       #@main.pointer_ungrab(0)
     }
-    @main.signal_connect('motion_notify_event'){|w,e|
-      if @dragging
-        win, x, y, state = w.window.get_device_position(e.device)
-        puts("Motion x: #{x}, y: #{y}")
-        @main.move(x - @x, y - @y)
+    win.signal_connect('motion_notify_event'){|w,e|
+      if @reposition.key?(id)
+        _win, motion_x, motion_y, state = w.window.get_device_position(e.device)
+
+        # Motion event coordinants are in reference to the widget and go negative when leaving
+        # window borders. Thus movement of window position can be calculated by the postion of the
+        # window + the difference of x1 and x2. Since 0,0 is top left we do it backwards  e.g.
+        # x + (x2 - x1) = new position
+        old_x, old_y = w.position
+        new_x = old_x + (motion_x - @reposition[id].first)
+        new_y = old_y + (motion_y - @reposition[id].last)
+        win.move(new_x, new_y)
       end
     }
   end
