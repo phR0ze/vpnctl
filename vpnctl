@@ -111,16 +111,16 @@ class VpnCtl
     id = win.object_id
 
     win.signal_connect('button_press_event'){|w,e|
-      if e.button == 1  # Left mouse
-        @reposition[id] = [e.x, e.y]
-        win.window.set_cursor(@cursor_grabbing)
-        win.grab_add
+      if e.button == 1                          # Start on repositioning on left mouse click
+        @reposition[id] = [e.x, e.y]            # Add window to repositioning hash for tracking
+        win.window.set_cursor(@cursor_grabbing) # Set cursor to grabbing for movement indication
+        win.grab_add                            # Ignore all other widget input during movement
       end
     }
     win.signal_connect('button_release_event'){
-      @reposition.delete(id)
-      win.window.set_cursor(nil)
-      win.grab_remove
+      @reposition.delete(id)                    # Remove from currently repositioning tracking
+      win.window.set_cursor(nil)                # Reset cursor back to 'default'
+      win.grab_remove                           # Remove block on other widget inputs
     }
     win.signal_connect('motion_notify_event'){|w,e|
       if @reposition.key?(id)
