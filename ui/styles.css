@@ -126,16 +126,16 @@ scrolledwindow {
   background-repeat: no-repeat;
 }
 #add-button {
-  background-image: url("images/scalable/add.svg");
+  background-image: url("../images/scalable/add.svg");
 }
 #add-button:active {
-  background-image: url("images/scalable/add-active.svg");
+  background-image: url("../images/scalable/add-active.svg");
 }
 #delete-button {
-  background-image: url("images/scalable/delete.svg");
+  background-image: url("../images/scalable/delete.svg");
 }
 #delete-button:active {
-  background-image: url("images/scalable/delete-active.svg");
+  background-image: url("../images/scalable/delete-active.svg");
 }
 
 /* VPN Content

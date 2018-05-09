@@ -64,14 +64,15 @@ class VpnCtl
 
     # Inflate UI elements from glade xml files
     @builder = Gtk::Builder.new
-    @builder.add_from_file(File.join(@datapath, 'vpnctl.ui'))
+    @builder.add_from_file(File.join(@datapath, 'ui/vpnctl.ui'))
 
     # Setup cursors
     @cursor_waiting = Gdk::Cursor.new("wait")
     @cursor_grabbing = Gdk::Cursor.new("grabbing")
 
-    # Get class wide handles for common objects
+    # Get handles for important ui objects
     @main = @builder.get_object("main-window")
+    @vpnlist = @builder.get_object("vpn-list")
 
 #    @tray = create_system_tray_icon
 #    @popup_menu = create_popup_menu
@@ -84,7 +85,7 @@ class VpnCtl
   # Initialize css for all widgets recursively
   def apply_styles
     css = Gtk::CssProvider.new
-    css.load(path: File.join(@datapath, 'styles.css'))
+    css.load(path: File.join(@datapath, 'ui/styles.css'))
     applystyles = ->(widget){
       widget.style_context.add_provider(css, Gtk::StyleProvider::PRIORITY_USER)
       return unless widget.respond_to?(:children)
