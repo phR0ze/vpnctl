@@ -59,6 +59,7 @@ class VpnCtl
     construct_ui
     apply_styles
     connect_signals
+    configure_reposition
   end
 
   def construct_ui
@@ -93,15 +94,45 @@ class VpnCtl
 
     # Exit on Alt-F4 or Escape
     @main.signal_connect('destroy'){ Gtk.main_quit }
-    @main.signal_connect('key_press_event'){|widget, event|
-      Gtk.main_quit if event.keyval == Gdk::Keyval::KEY_Escape
+    @main.signal_connect('key_press_event'){|w,e|
+      Gtk.main_quit if e.keyval == Gdk::Keyval::KEY_Escape
     }
+  end
 
-    @main.signal_connect('button_press_event'){|widget, event|
+  # Setup window to be able to be repositioned
+  def configure_reposition
+
+    # Setup main window to receive events that it normally doesn't
+    # To catch mouse release requires BUTTON_RELEASE_MASK and BUTTON_PRESS_MASK
+    # POINTER_MOTION_HINT_MASK will send you a motion even then not another until you call
+    # get_device_position
+    #@main.events |= Gdk::EventMask::BUTTON_RELEASE_MASK | Gdk::EventMask::BUTTON_PRESS_MASK |
+    #  Gdk::EventMask::POINTER_MOTION_MASK | Gdk::EventMask::POINTER_MOTION_HINT_MASK 
+    #
+    @dragging = false
+    @main.signal_connect('button_press_event'){|w,e|
       # Left mouse == 1
-      if event.button == 1
-        puts("here")
-        widget.move(0, 0)
+      if e.button == 1
+        @dragging = true
+        x, y = w.position
+        @x = e.x - x; @y = e.y - y
+        puts("Position x: #{@x}, y: #{@y}")
+        #w.get_window.set_cursor(Gtk::Cursor.new(Gdk.CursorType, HAND2))
+        @main.grab_add
+        #@main.pointer_grab(true, Gdk::EventMask::BUTTON_RELEASE_MASK |
+        #  Gdk::EventMask::BUTTON_MOTION_MASK | Gdk::EventMask::POINTER_MOTION_HINT_MASK, nil, nil, 0)
+      end
+    }
+    @main.signal_connect('button_release_event'){
+      @dragging = false
+      @main.grab_remove
+      #@main.pointer_ungrab(0)
+    }
+    @main.signal_connect('motion_notify_event'){|w,e|
+      if @dragging
+        win, x, y, state = w.window.get_device_position(e.device)
+        puts("Motion x: #{x}, y: #{y}")
+        @main.move(x - @x, y - @y)
       end
     }
   end
