@@ -22,6 +22,7 @@
 
 #-----------------------------------------------------------------------------------------------
 # Simple GTK+ UI for openvpn and tooling for simple VPN access
+# https://github.com/ruby-gnome2/ruby-gnome2/blob/609018966de7382085df322a5e0e66085885834f/gtk2/sample/misc/drag-move.rb
 #-----------------------------------------------------------------------------------------------
 load File.join(File.dirname(File.expand_path(__FILE__)), "vpnctl-cli")
 
@@ -55,29 +56,54 @@ class VpnCtl
 #    @halt = false
 #    @vpn_comm_in = nil
 #
-    # Construct UI elements
+    construct_ui
+    apply_styles
+    connect_signals
+  end
+
+  def construct_ui
+
+    # Inflate UI elements from glade xml files
     @builder = Gtk::Builder.new
+    @builder.add_from_file(File.join(@datapath, 'vpnctl.ui'))
+
+    # Get class wide handles for common objects
+    @main = @builder.get_object("main-window")
+
 #    @tray = create_system_tray_icon
 #    @popup_menu = create_popup_menu
-    @builder.add_from_file(File.join(@datapath, 'vpnctl.ui'))
-    @main = @builder.get_object("main-window")
 #    @logwin, @logview, @logiter = create_log_window
 #    @settings = create_settings_window
+  end
 
-    # Configure signals
-    @main.signal_connect('key_press_event'){|widget, event|
-      Gtk.main_quit if event.keyval == Gdk::Keyval::KEY_Escape
-    }
-
-    # Initialize css for all widgets recursively
-    @css = Gtk::CssProvider.new
-    @css.load(path: File.join(@datapath, 'styles.css'))
-    applystyles = lambda{|widget|
-      widget.style_context.add_provider(@css, Gtk::StyleProvider::PRIORITY_USER)
+  # Initialize css for all widgets recursively
+  def apply_styles
+    css = Gtk::CssProvider.new
+    css.load(path: File.join(@datapath, 'styles.css'))
+    applystyles = ->(widget){
+      widget.style_context.add_provider(css, Gtk::StyleProvider::PRIORITY_USER)
       return unless widget.respond_to?(:children)
       widget.children.each{|x| applystyles.call(x)}
     }
     applystyles.call(@main)
+  end
+
+  # Configure signals
+  def connect_signals
+
+    # Exit on Alt-F4 or Escape
+    @main.signal_connect('destroy'){ Gtk.main_quit }
+    @main.signal_connect('key_press_event'){|widget, event|
+      Gtk.main_quit if event.keyval == Gdk::Keyval::KEY_Escape
+    }
+
+    @main.signal_connect('button_press_event'){|widget, event|
+      # Left mouse == 1
+      if event.button == 1
+        puts("here")
+        widget.move(0, 0)
+      end
+    }
   end
 
 #  # Create the system tray icon
@@ -225,7 +251,7 @@ class VpnCtl
 #    target_entry = @builder.get_object("target_entry")
 #    if File.exist?(@config)
 #      File.open(@config, 'r'){|f|
-#        lines = f.readlines 
+#        lines = f.readlines
 #        username_entry.text = lines[0].strip if lines.any?
 #        password_entry.text = lines[1].strip if lines.size > 1
 #        if lines.size > 2

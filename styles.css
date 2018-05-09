@@ -6,6 +6,7 @@
  * pseudo classes: *:hover, *:focus, *:selected, *:selected:hover, *:disabled
  * 
  *******************************************************************************/
+/* Ignore all defaults and theme styles */
 * {
   all: unset;
 }
