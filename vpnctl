@@ -66,6 +66,10 @@ class VpnCtl
     @builder = Gtk::Builder.new
     @builder.add_from_file(File.join(@datapath, 'vpnctl.ui'))
 
+    # Setup cursors
+    @cursor_waiting = Gdk::Cursor.new("wait")
+    @cursor_grabbing = Gdk::Cursor.new("grabbing")
+
     # Get class wide handles for common objects
     @main = @builder.get_object("main-window")
 
@@ -103,38 +107,28 @@ class VpnCtl
   # by clicking on non-child widget area to move with dragging
   # @param win [GtkWindow] window to enable repositioning for
   def enable_repositioning(win)
+    @reposition ||= {}
     id = win.object_id
 
-    # Setup main window to receive events that it normally doesn't
-    # To catch mouse release requires BUTTON_RELEASE_MASK and BUTTON_PRESS_MASK
-    # POINTER_MOTION_HINT_MASK will send you a motion even then not another until you call
-    # get_device_position
-    #@main.events |= Gdk::EventMask::BUTTON_RELEASE_MASK | Gdk::EventMask::BUTTON_PRESS_MASK |
-    #  Gdk::EventMask::POINTER_MOTION_MASK | Gdk::EventMask::POINTER_MOTION_HINT_MASK 
-    #
-    @reposition ||= {}
     win.signal_connect('button_press_event'){|w,e|
       if e.button == 1  # Left mouse
         @reposition[id] = [e.x, e.y]
-        #w.get_window.set_cursor(Gtk::Cursor.new(Gdk.CursorType, HAND2))
+        win.window.set_cursor(@cursor_grabbing)
         win.grab_add
-        #@main.pointer_grab(true, Gdk::EventMask::BUTTON_RELEASE_MASK |
-        #  Gdk::EventMask::BUTTON_MOTION_MASK | Gdk::EventMask::POINTER_MOTION_HINT_MASK, nil, nil, 0)
       end
     }
     win.signal_connect('button_release_event'){
       @reposition.delete(id)
+      win.window.set_cursor(nil)
       win.grab_remove
-      #@main.pointer_ungrab(0)
     }
     win.signal_connect('motion_notify_event'){|w,e|
       if @reposition.key?(id)
-        _win, motion_x, motion_y, state = w.window.get_device_position(e.device)
-
         # Motion event coordinants are in reference to the widget and go negative when leaving
         # window borders. Thus movement of window position can be calculated by the postion of the
         # window + the difference of x1 and x2. Since 0,0 is top left we do it backwards  e.g.
         # x + (x2 - x1) = new position
+        _win, motion_x, motion_y, state = w.window.get_device_position(e.device)
         old_x, old_y = w.position
         new_x = old_x + (motion_x - @reposition[id].first)
         new_y = old_y + (motion_y - @reposition[id].last)
