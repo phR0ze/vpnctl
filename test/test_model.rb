@@ -38,7 +38,9 @@ class Test_Model < Minitest::Test
   end
 
   def test_PassType
-    assert_equal(:ask, Model::PassType['Ask for password'])
+    assert_equal('ask', Model::PassTypes.ask)
+    vpn = Model::Login.new(Model::PassTypes.ask, 'user', 'pass')
+    assert_equal('ask', vpn.type)
   end
 end
 

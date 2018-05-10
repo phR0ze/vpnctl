@@ -20,18 +20,14 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 
-require 'ostruct'               # OpenStruct
 require 'open3'                 # Better system commands
 require 'socket'                # Networking support
-
 require 'colorize'              # Color output
 require 'nub'                   # Commands
+require_relative 'lib/model'
 
 class VpnCtlCli
   attr_reader(:config)
-
-  Login = Struct.new(:type, :user, :pass)
-  Vpn = Struct.new(:name, :login, :routes, :ovpn, :auth)
 
   # Initialize this VPN instance
   # @param name [String] name of the vpn to use
@@ -62,7 +58,7 @@ class VpnCtlCli
     ovpn = vpn['ovpn']
     raise("couldn't find 'ovpn' in config") if ovpn.nil?
 
-    return Vpn.new(name, Login.new(type, user, pass),
+    return Model::Vpn.new(name, Model::Login.new(type, user, pass),
       routes || [], ovpn, File.join(File.dirname(ovpn), "#{name}.auth"))
   end
 
