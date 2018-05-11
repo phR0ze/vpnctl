@@ -92,7 +92,7 @@ class VpnCtlCli
           log_thread = Thread.new{
             while line=stdout.gets do
               if line.include?("Initialization Sequence Completed")
-                comm_in << ThreadMsg.new(CommCmd.vpn_up)
+                comm_in << ThreadMsg.new(Model::CommCmd.vpn_up)
               end
               Log.info("#{'OVPN:'.colorize(:yellow)} #{line.strip}")
             end
@@ -106,10 +106,10 @@ class VpnCtlCli
               msg = comm_in.pop
               
               # Wait for tunnel to be created
-              if msg.cmd == CommCmd.vpn_up && !vpn_started
+              if msg.cmd == Model::CommCmd.vpn_up && !vpn_started
                 vpn_started = true
                 Log.info("VPN #{@config.name.colorize(:cyan)} is up and running")
-                comm_out << ThreadMsg.new(CommCmd.vpn_up)
+                comm_out << ThreadMsg.new(Model::CommCmd.vpn_up)
 
                 # Add any routes from the configuration
                 tun_ip = Socket.getifaddrs.find{|x| x.addr and x.name == 'tun0' and x.addr.ipv4?}.addr.ip_address
@@ -120,7 +120,7 @@ class VpnCtlCli
               end
 
               # Terminate
-              if msg.cmd == CommCmd.halt
+              if msg.cmd == Model::CommCmd.halt
                 Log.warn("Halting the management thread")
                 raise SystemExit
               end
@@ -139,7 +139,7 @@ class VpnCtlCli
         # Log exceptions
         rescue Exception => e
           Log.error(e.to_s)
-          comm_out << ThreadMsg.new(CommCmd.tun_down)
+          comm_out << ThreadMsg.new(Model::CommCmd.tun_down)
 
         # Clean up on errors and try again
         ensure
@@ -156,7 +156,7 @@ class VpnCtlCli
           while !Log.empty? do
             sleep(0.25)
           end
-          comm_out << ThreadMsg.new(CommCmd.halt) if halt
+          comm_out << ThreadMsg.new(Model::CommCmd.halt) if halt
         end
 
         # Retry sleep logic
@@ -197,11 +197,11 @@ end
 # Main entry point
 #-------------------------------------------------------------------------------
 if __FILE__ == $0
-  app = 'openvpn-cli'
+  app = 'vpnctl-cli'
   version = '0.0.1'
   examples = "Start VPN: sudo ./#{app} start ospra\n".colorize(:green)
   cmdr = Commander.new(app:app, version:version, examples:examples)
-  cmdr.add('start', 'Start VPN service', options:[
+  cmdr.add('start', 'Start VPN service', nodes:[
     Option.new(nil, 'VPN name to lookup in config')
   ])
   cmdr.parse!
@@ -211,7 +211,7 @@ if __FILE__ == $0
   if cmdr[:start]
     begin
       vpn = VpnCtlCli.new(cmdr[:start][:start0])
-      if PassType[vpn.config.login.type] == :ask
+      if vpn.config.login.type == Model::PassTypes.ask
         vpn.config.login.pass = Sys.getpass
       end
       vpn_thread = vpn.start
@@ -220,7 +220,7 @@ if __FILE__ == $0
     rescue Interrupt
       Log.puts(stamp:false)
       Log.info("MGMT: Halting VPN".colorize(:magenta))
-      vpn_thread.push(CommCmd.halt)
+      vpn_thread.push(Model::CommCmd.halt)
       vpn_thread.pop
       Log.info("MGMT: VPN Halted".colorize(:magenta))
     end

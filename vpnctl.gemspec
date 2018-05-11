@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name        = 'vpnctl'
-  spec.version     = '0.0.1'
+  spec.version     = '0.0.3'
   spec.summary     = "Simple GUI automation for openvpn"
   spec.authors     = ["Patrick Crummett"]
   spec.homepage    = 'https://github.com/phR0ze/vpnctl'
@@ -8,12 +8,12 @@ Gem::Specification.new do |spec|
   spec.files       = ['vpnctl', 'vpnctl-ui']
 
   # Runtime dependencies
-  spec.add_dependency('nub', '>= 0.0.53')
-  spec.add_dependency('minitest', '>= 5.11.3')
-  spec.add_dependency('rake', '~> 12.0')
-  spec.add_dependency('qtbindings', '~> 4.8.6.4')
+  spec.add_dependency('nub', '>= 0.0.65')
+  #spec.add_dependency('gtk3', '~> 3.2.4')
+  spec.add_dependency('colorize', '~> 0.8.1')
 
   # Development dependencies
+  spec.add_development_dependency('minitest', '>= 5.11.3')
   spec.add_development_dependency('coveralls', '~> 0.8')
   spec.add_development_dependency('bundler', '~> 1.16')
   spec.add_development_dependency('rake', '~> 12.0')
