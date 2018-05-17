@@ -41,9 +41,9 @@ class VpnCtl
     @datapath = File.dirname(File.expand_path(__FILE__))
     @datapath = '/usr/share/vpnctl' if File.basename(@datapath) != 'vpnctl'
     @images_path = File.join(@datapath, 'images')
-#    @icon_path = File.join(@datapath, 'images/32x32')
-#
-#    @icon = File.join(@icon_path, 'vpnctl.png')
+    @icon_path = File.join(@images_path, '32x32')
+
+    @icon = File.join(@icon_path, 'vpnctl.png')
 #    @enabled_icon = File.join(@icon_path, 'vpnctl-enabled.png')
 #    @targeted_icon = File.join(@icon_path, 'vpnctl-targeted.png')
 #    @disabled_icon  = File.join(@icon_path, 'vpnctl-disabled.png')
@@ -73,6 +73,9 @@ class VpnCtl
     # Get handles for important ui objects
     @main = @builder.get_object("main-window")
     @vpnlist = @builder.get_object("vpn-list")
+
+    # Configure main window
+    @main.icon = GdkPixbuf::Pixbuf.new(file:@icon)
 
 #    @tray = create_system_tray_icon
 #    @popup_menu = create_popup_menu
