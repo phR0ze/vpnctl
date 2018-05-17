@@ -22,7 +22,8 @@
 
 #-----------------------------------------------------------------------------------------------
 # Simple GTK+ UI for openvpn and tooling for simple VPN access
-# https://github.com/ruby-gnome2/ruby-gnome2/blob/609018966de7382085df322a5e0e66085885834f/gtk2/sample/misc/drag-move.rb
+# https://developer.gnome.org/gtk3/stable
+# https://github.com/ruby-gnome2/ruby-gnome2/tree/master/gtk3
 #-----------------------------------------------------------------------------------------------
 load File.join(File.dirname(File.expand_path(__FILE__)), "vpnctl-cli")
 
@@ -48,8 +49,8 @@ class VpnCtl
 #    @targeted_icon = File.join(@icon_path, 'vpnctl-targeted.png')
 #    @disabled_icon  = File.join(@icon_path, 'vpnctl-disabled.png')
 #
-#    # Configure config and logging
-#    Config.init('vpnctl.yml')
+    # Configure config and logging
+    Config.init('vpnctl.yml')
 #    Log.init(path:, queue:true, stdout:true)
 #
 #    # VPN thread communication
@@ -72,7 +73,6 @@ class VpnCtl
 
     # Get handles for important ui objects
     @main = @builder.get_object("main-window")
-    @vpnlist = @builder.get_object("vpn-list")
 
     # Configure main window
     @main.icon = GdkPixbuf::Pixbuf.new(file:@icon)
@@ -81,8 +81,9 @@ class VpnCtl
 #    @popup_menu = create_popup_menu
 #    @logwin, @logview, @logiter = create_log_window
 #    @settings = create_settings_window
-    apply_styles
     enable_repositioning(@main)
+    populate_vpn_list
+    apply_styles
   end
 
   # Initialize css for all widgets recursively
@@ -97,14 +98,24 @@ class VpnCtl
     applystyles.call(@main)
   end
 
-  # Configure signals
-  def connect_signals
+  # Read in vpns from config file and populate list
+  def populate_vpn_list
+    vpnlist_box = @builder.get_object("vpn-list-box")
+    vpnlist_view = @builder.get_object("vpn-list-view")
+    vpnlist_scroll = @builder.get_object("vpn-list-scroll")
 
-    # Exit on Alt-F4 or Escape
-    @main.signal_connect('destroy'){ Gtk.main_quit }
-    @main.signal_connect('key_press_event'){|w,e|
-      Gtk.main_quit if e.keyval == Gdk::Keyval::KEY_Escape
-    }
+    for i in 1..15
+      button = Gtk::Button.new(label: "foo#{i}")
+      vpnlist_box.pack_start(button)
+      button.show
+    end
+    #vpnlist_box.override_background_color(:normal, Gdk::RGBA.parse("#CFFCFF"))
+
+    #@vpnlist.add_with_viewport()
+    # gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(formula_scrolled_window), GTK_POLICY_ALWAYS, GTK_POLICY_ALWAYS);
+    # gtk_widget_set_size_request(formula_scrolled_window, 400, 200);
+    # gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(formula_scrolled_window), image);
+    # gtk_box_pack_start(GTK_BOX(formula_h_box), formula_scrolled_window, FALSE, FALSE, 0);
   end
 
   # Setup window to be able to be repositioned
@@ -138,6 +149,51 @@ class VpnCtl
         new_y = old_y + (motion_y - @reposition[id].last)
         win.move(new_x, new_y)
       end
+    }
+  end
+
+  # Configure signals
+  def connect_signals
+
+    # Exit on Alt-F4 or Escape
+    @main.signal_connect('destroy'){ Gtk.main_quit }
+    @main.signal_connect('key_press_event'){|w,e|
+      Gtk.main_quit if e.keyval == Gdk::Keyval::KEY_Escape
+    }
+
+    # Connect button
+    @builder.get_object("connect-button").signal_connect('clicked'){|switch|
+      puts("Connect: clicked")
+    }
+
+    # Save button
+    @builder.get_object("save-button").signal_connect('clicked'){|switch|
+      puts("Save: clicked")
+    }
+
+    # Cancel button
+    @builder.get_object("cancel-button").signal_connect('clicked'){|switch|
+      puts("Cancel: clicked")
+    }
+
+    # Add vpn button
+    @builder.get_object("add-button").signal_connect('clicked'){|switch|
+      puts("Add vpn: clicked")
+    }
+
+    # Delete vpn button
+    @builder.get_object("delete-button").signal_connect('clicked'){|switch|
+      puts("Delete vpn: clicked")
+    }
+
+    # Default switch
+    @builder.get_object("default-switch").signal_connect('notify::active'){|switch|
+      puts("Default: #{switch.active?}")
+    }
+
+    # Target Apps switch
+    @builder.get_object("target-apps-switch").signal_connect('notify::active'){|switch|
+      puts("Target Apps: #{switch.active?}")
     }
   end
 

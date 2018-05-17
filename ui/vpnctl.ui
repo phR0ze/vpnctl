@@ -77,13 +77,33 @@
                     <property name="can_focus">False</property>
                     <property name="orientation">vertical</property>
                     <child>
-                      <object class="GtkScrolledWindow" id="vpn-lis">
+                      <object class="GtkScrolledWindow" id="vpn-list-scroll">
+                        <property name="name">vpn-list-scroll</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="shadow_type">in</property>
-                        <property name="min_content_height">250</property>
+                        <property name="min_content_height">335</property>
                         <child>
-                          <placeholder/>
+                          <object class="GtkViewport" id="vpn-list-view">
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="shadow_type">etched-in</property>
+                            <child>
+                              <object class="GtkBox" id="vpn-list-box">
+                                <property name="visible">True</property>
+                                <property name="can_focus">False</property>
+                                <property name="orientation">vertical</property>
+                                <child>
+                                  <placeholder/>
+                                </child>
+                                <child>
+                                  <placeholder/>
+                                </child>
+                                <child>
+                                  <placeholder/>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
                         </child>
                       </object>
                       <packing>
@@ -113,7 +133,7 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton">
+                          <object class="GtkButton" id="add-button">
                             <property name="label">+</property>
                             <property name="name">add-button</property>
                             <property name="visible">True</property>
@@ -130,7 +150,7 @@
                           </packing>
                         </child>
                         <child>
-                          <object class="GtkButton">
+                          <object class="GtkButton" id="delete-button">
                             <property name="label">-</property>
                             <property name="name">delete-button</property>
                             <property name="visible">True</property>
@@ -540,7 +560,7 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <child>
-                                  <object class="GtkSwitch">
+                                  <object class="GtkSwitch" id="target-apps-switch">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                   </object>
@@ -640,7 +660,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
-                  <object class="GtkSwitch">
+                  <object class="GtkSwitch" id="default-switch">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                   </object>
@@ -677,7 +697,7 @@
                 <property name="spacing">4</property>
                 <property name="homogeneous">True</property>
                 <child>
-                  <object class="GtkButton">
+                  <object class="GtkButton" id="connect-button">
                     <property name="label">Connect</property>
                     <property name="name">connect-button</property>
                     <property name="visible">True</property>
@@ -691,7 +711,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton">
+                  <object class="GtkButton" id="save-button">
                     <property name="label">Save</property>
                     <property name="name">save-button</property>
                     <property name="visible">True</property>
@@ -705,7 +725,7 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkButton">
+                  <object class="GtkButton" id="cancel-button">
                     <property name="label">Cancel</property>
                     <property name="name">cancel-button</property>
                     <property name="visible">True</property>
