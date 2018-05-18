@@ -89,6 +89,7 @@
                             <property name="shadow_type">etched-in</property>
                             <child>
                               <object class="GtkBox" id="vpn-list-box">
+                                <property name="name">vpn-list-box</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="orientation">vertical</property>

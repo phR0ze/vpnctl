@@ -104,12 +104,16 @@ class VpnCtl
     vpnlist_view = @builder.get_object("vpn-list-view")
     vpnlist_scroll = @builder.get_object("vpn-list-scroll")
 
-    for i in 1..15
+    for i in 1..8
       button = Gtk::Button.new(label: "foo#{i}")
+      button.signal_connect('clicked'){|btn|
+        #btn.override_background_color(:normal, Gdk::RGBA.parse("#888"))
+        #btn.name = btn.name == 'button-active' ? '' : 'button-active'
+        puts(btn.style.methods)
+      }
       vpnlist_box.pack_start(button)
       button.show
     end
-    #vpnlist_box.override_background_color(:normal, Gdk::RGBA.parse("#CFFCFF"))
 
     #@vpnlist.add_with_viewport()
     # gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(formula_scrolled_window), GTK_POLICY_ALWAYS, GTK_POLICY_ALWAYS);
@@ -162,38 +166,38 @@ class VpnCtl
     }
 
     # Connect button
-    @builder.get_object("connect-button").signal_connect('clicked'){|switch|
+    @builder.get_object("connect-button").signal_connect('clicked'){|btn|
       puts("Connect: clicked")
     }
 
     # Save button
-    @builder.get_object("save-button").signal_connect('clicked'){|switch|
+    @builder.get_object("save-button").signal_connect('clicked'){|btn|
       puts("Save: clicked")
     }
 
     # Cancel button
-    @builder.get_object("cancel-button").signal_connect('clicked'){|switch|
+    @builder.get_object("cancel-button").signal_connect('clicked'){|btn|
       puts("Cancel: clicked")
     }
 
     # Add vpn button
-    @builder.get_object("add-button").signal_connect('clicked'){|switch|
+    @builder.get_object("add-button").signal_connect('clicked'){|btn|
       puts("Add vpn: clicked")
     }
 
     # Delete vpn button
-    @builder.get_object("delete-button").signal_connect('clicked'){|switch|
+    @builder.get_object("delete-button").signal_connect('clicked'){|btn|
       puts("Delete vpn: clicked")
     }
 
     # Default switch
-    @builder.get_object("default-switch").signal_connect('notify::active'){|switch|
-      puts("Default: #{switch.active?}")
+    @builder.get_object("default-switch").signal_connect('notify::active'){|sw|
+      puts("Default: #{sw.active?}")
     }
 
     # Target Apps switch
-    @builder.get_object("target-apps-switch").signal_connect('notify::active'){|switch|
-      puts("Target Apps: #{switch.active?}")
+    @builder.get_object("target-apps-switch").signal_connect('notify::active'){|sw|
+      puts("Target Apps: #{sw.active?}")
     }
   end
 

@@ -40,6 +40,7 @@ button:hover, button:active {
   margin: 2px;
   border: 2px solid #fff;
 }
+#button-active,
 button:active {
   color: white;
   background-color: #888;
@@ -83,11 +84,6 @@ textview {
   background-color: #f3f3f3;
 }
 
-/* Scrolled window styling */
-scrolledwindow {
-  min-height: 40px;
-}
-
 /* Title box
  *******************************************************************************/
 #title-box {
@@ -125,7 +121,7 @@ scrolledwindow {
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
-#vpn-list-scroll {
+#vpn-list scrolledwindow {
   padding: 2px;
   padding-bottom: 5px;
   border-radius: 8px;
