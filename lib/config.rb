@@ -92,7 +92,7 @@ module Config
     ovpn = vpn['ovpn']
     raise("couldn't find 'ovpn' in config") if ovpn.nil?
 
-    default = vpn['default']
+    default = vpn['default'] || false
 
     return Model::Vpn.new(name, Model::Login.new(type, user, pass),
       routes || [], ovpn, File.join(File.dirname(ovpn), "#{name}.auth"), default)

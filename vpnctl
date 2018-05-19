@@ -63,8 +63,8 @@ class VpnCtl
 #    @halt = false
 #    @vpn_comm_in = nil
 #
-    construct_ui
-    connect_signals
+    self.construct_ui
+    self.connect_signals
   end
 
   # Inflate UI elements from glade xml files and create any dynamic UI needed
@@ -87,6 +87,7 @@ class VpnCtl
     @vpn_user = @builder.get_object("vpn-username-entry")
     @vpn_pass = @builder.get_object("vpn-password-entry")
     @vpn_routes = @builder.get_object("vpn-routes-entry")
+    @vpn_default = @builder.get_object("default-switch")
 
     # Configure main window
     @main.icon = GdkPixbuf::Pixbuf.new(file:@icon)
@@ -95,24 +96,13 @@ class VpnCtl
 #    @popup_menu = create_popup_menu
 #    @logwin, @logview, @logiter = create_log_window
 #    @settings = create_settings_window
-    enable_repositioning(@main)
-    populate_vpn_list
-    apply_styles
-  end
-
-  # Initialize css for all widgets recursively
-  def apply_styles
-    css = Gtk::CssProvider.new
-    css.load(path: File.join(@datapath, 'ui/styles.css'))
-    applystyles = ->(widget){
-      widget.style_context.add_provider(css, Gtk::StyleProvider::PRIORITY_USER)
-      return unless widget.respond_to?(:children)
-      widget.children.each{|x| applystyles.call(x)}
-    }
-    applystyles.call(@main)
+    self.enable_repositioning(@main)
+    self.populate_vpn_list
+    self.apply_styles
   end
 
   # Read in vpns from config file and populate list
+  # then select the default or first one
   def populate_vpn_list
     Config.vpns.each{|vpn|
       btn = Gtk::Button.new(label: vpn.name)
@@ -120,40 +110,37 @@ class VpnCtl
       @vpnlist_box.pack_start(btn)
       btn.show
     }
+
+    # Select only vpn if none others
+    self.select_vpn(@vpnlist_btns.first.label) if @vpnlist_btns.size == 1
+
+    # Select default vpn
+    @vpnlist_btns.each{|x| self.select_vpn(x.label) if Config.vpn(x.label).default}
   end
 
-  # Setup window to be able to be repositioned
-  # by clicking on non-child widget area to move with dragging
-  # @param win [GtkWindow] window to enable repositioning for
-  def enable_repositioning(win)
-    @reposition ||= {}
-    id = win.object_id
+  # Select the given vpn from the list and populate ui
+  # @param name [String] name of the vpn to select
+  def select_vpn(name)
+    vpn = Config.vpn(name)
 
-    win.signal_connect('button_press_event'){|w,e|
-      if e.button == 1                          # Start on repositioning on left mouse click
-        @reposition[id] = [e.x, e.y]            # Add window to repositioning hash for tracking
-        win.window.set_cursor(@cursor_grabbing) # Set cursor to grabbing for movement indication
-        win.grab_add                            # Ignore all other widget input during movement
+    # Configure active styles
+    @vpnlist_btns.each{|x|
+      ctx = x.style_context
+      if x.label == name
+        ctx.add_class('button-active') if !ctx.has_class?('button-active')
+      else
+        ctx.remove_class('button-active')
       end
     }
-    win.signal_connect('button_release_event'){
-      @reposition.delete(id)                    # Remove from currently repositioning tracking
-      win.window.set_cursor(nil)                # Reset cursor back to 'default'
-      win.grab_remove                           # Remove block on other widget inputs
-    }
-    win.signal_connect('motion_notify_event'){|w,e|
-      if @reposition.key?(id)
-        # Motion event coordinants are in reference to the widget and go negative when leaving
-        # window borders. Thus movement of window position can be calculated by the postion of the
-        # window + the difference of x1 and x2. Since 0,0 is top left we do it backwards  e.g.
-        # x + (x2 - x1) = new position
-        _win, motion_x, motion_y, state = w.window.get_device_position(e.device)
-        old_x, old_y = w.position
-        new_x = old_x + (motion_x - @reposition[id].first)
-        new_y = old_y + (motion_y - @reposition[id].last)
-        win.move(new_x, new_y)
-      end
-    }
+
+    # Load active vpn into editor
+    @vpn_name.text = vpn.name
+    @vpn_ovpn.text = File.basename(vpn.ovpn)
+    @vpn_logintype.text = vpn.login.type || ""
+    @vpn_user.text = vpn.login.user || ""
+    @vpn_pass.text = vpn.login.pass || ""
+    @vpn_routes.text = vpn.routes * ","
+    @vpn_default.set_active(vpn.default)
   end
 
   # Configure signals
@@ -191,7 +178,7 @@ class VpnCtl
     }
 
     # Default switch
-    @builder.get_object("default-switch").signal_connect('notify::active'){|sw|
+    @vpn_default.signal_connect('notify::active'){|sw|
       puts("Default: #{sw.active?}")
     }
 
@@ -201,22 +188,52 @@ class VpnCtl
     }
 
     # Configure signals/actions for vpnlist
-    @vpnlist_btns.each{|x|
-      x.signal_connect('clicked'){|btn|
-        vpn = Config.vpn(btn.label)
+    @vpnlist_btns.each{|x| x.signal_connect('clicked'){|btn| self.select_vpn(btn.label)}}
+  end
 
-        # Configure active styles
-        @vpnlist_btns.each{|y| y.style_context.remove_class('button-active')}
-        btn.style_context.add_class('button-active')
+  # Initialize css for all widgets recursively
+  def apply_styles
+    css = Gtk::CssProvider.new
+    css.load(path: File.join(@datapath, 'ui/styles.css'))
+    applystyles = ->(widget){
+      widget.style_context.add_provider(css, Gtk::StyleProvider::PRIORITY_USER)
+      return unless widget.respond_to?(:children)
+      widget.children.each{|x| applystyles.call(x)}
+    }
+    applystyles.call(@main)
+  end
 
-        # Load active vpn into editor
-        @vpn_name.text = vpn.name
-        @vpn_ovpn.text = File.basename(vpn.ovpn)
-        @vpn_logintype.text = vpn.login.type || ""
-        @vpn_user.text = vpn.login.user || ""
-        @vpn_pass.text = vpn.login.pass || ""
-        @vpn_routes.text = vpn.routes * ","
-      }
+  # Setup window to be able to be repositioned
+  # by clicking on non-child widget area to move with dragging
+  # @param win [GtkWindow] window to enable repositioning for
+  def enable_repositioning(win)
+    @reposition ||= {}
+    id = win.object_id
+
+    win.signal_connect('button_press_event'){|w,e|
+      if e.button == 1                          # Start on repositioning on left mouse click
+        @reposition[id] = [e.x, e.y]            # Add window to repositioning hash for tracking
+        win.window.set_cursor(@cursor_grabbing) # Set cursor to grabbing for movement indication
+        win.grab_add                            # Ignore all other widget input during movement
+      end
+    }
+    win.signal_connect('button_release_event'){
+      @reposition.delete(id)                    # Remove from currently repositioning tracking
+      win.window.set_cursor(nil)                # Reset cursor back to 'default'
+      win.grab_remove                           # Remove block on other widget inputs
+    }
+    win.signal_connect('motion_notify_event'){|w,e|
+      if @reposition.key?(id)
+        # Motion event coordinants are in reference to the widget and go negative when leaving
+        # window borders. Thus movement of window position can be calculated by the postion of the
+        # window + the difference of x1 and x2. Since 0,0 is top left we do it backwards  e.g.
+        # x + (x2 - x1) = new position
+        _win, motion_x, motion_y, state = w.window.get_device_position(e.device)
+        old_x, old_y = w.position
+        new_x = old_x + (motion_x - @reposition[id].first)
+        new_y = old_y + (motion_y - @reposition[id].last)
+        win.move(new_x, new_y)
+      end
     }
   end
 
