@@ -20,11 +20,16 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 
+$root_path = File.dirname(File.expand_path(__FILE__))
+$root_path = '/usr/share/vpnctl' if $root_path == '/usr/bin'
+$LOAD_PATH.unshift($root_path)
+
 require 'open3'                 # Better system commands
 require 'socket'                # Networking support
 require 'colorize'              # Color output
 require 'nub'                   # Commands
-require_relative 'lib/model'
+require 'lib/model'             # vpnctl model
+require 'lib/config'            # vpnctl config
 
 class VpnCtlCli
   attr_reader(:config)
@@ -35,31 +40,7 @@ class VpnCtlCli
     Log.die("must be executed as root!") unless User.root?
     Log.die("IPForward=kernel must be set!") unless Net.ip_forward?
 
-    @config = load_vpn(name)
-  end
-
-  # Load/validate configs
-  # @param name [String] name of the vpn to use
-  # @returns vpn [Vpn] struct containing the vpn properties
-  def load_vpn(name)
-    vpns = Config['vpns']
-    raise("couldn't find 'vpns' in config") if vpns.nil?
-    vpn = vpns.find{|x| x['name'] == name }
-    raise("couldn't find '#{name}' in config") if vpn.nil?
-    login = vpn['login']
-    raise("couldn't find 'login' in config") if login.nil?
-    type = login['type']
-    raise("couldn't find 'type' in config") if type.nil?
-    user = login['user']
-    raise("couldn't find 'user' in config") if user.nil?
-    pass = login['pass']
-    routes = vpn['routes']
-    raise("couldn't find 'routes' in config") if routes.nil?
-    ovpn = vpn['ovpn']
-    raise("couldn't find 'ovpn' in config") if ovpn.nil?
-
-    return Model::Vpn.new(name, Model::Login.new(type, user, pass),
-      routes || [], ovpn, File.join(File.dirname(ovpn), "#{name}.auth"))
+    @config = Config.vpn(name)
   end
 
   # Start and manage the vpn connection in a separate thread
@@ -94,6 +75,9 @@ class VpnCtlCli
               if line.include?("Initialization Sequence Completed")
                 comm_in << ThreadMsg.new(Model::CommCmd.vpn_up)
               end
+              if msg = Model::FailMessages.find{|x| line.include?(x)}
+                comm_in << ThreadMsg.new(Model::CommCmd.fail, msg)
+              end
               Log.info("#{'OVPN:'.colorize(:yellow)} #{line.strip}")
             end
           }
@@ -101,10 +85,9 @@ class VpnCtlCli
           # Manage thread communication and actions
           vpn_started = false
           while true do
-            Log.info("Waiting for vpn #{@config.name.colorize(:cyan)} to be started...") if !vpn_started
             if !comm_in.empty?
               msg = comm_in.pop
-              
+
               # Wait for tunnel to be created
               if msg.cmd == Model::CommCmd.vpn_up && !vpn_started
                 vpn_started = true
@@ -119,8 +102,9 @@ class VpnCtlCli
                 }
               end
 
-              # Terminate
-              if msg.cmd == Model::CommCmd.halt
+              # Terminate on halt or failures
+              if [Model::CommCmd.halt, Model::CommCmd.fail].include?(msg.cmd)
+                Log.error(msg.value) if msg.cmd == Model::CommCmd.fail
                 Log.warn("Halting the management thread")
                 raise SystemExit
               end
@@ -128,8 +112,13 @@ class VpnCtlCli
               sleep(0.25)
             end
 
-            # Monitor vpn
-            raise(Exception, "OpenVPN connection failed") if !openvpn_thread.alive?
+            # Bail if vpn is down and log is drained
+            if !openvpn_thread.alive?
+              sleep(0.25)
+              raise(Exception, "OpenVPN connection failed") if comm_in.empty?
+            elsif !vpn_started
+              Log.info("Waiting for vpn #{@config.name.colorize(:cyan)} to be started...")
+            end
           end
 
         # Allow for aborting

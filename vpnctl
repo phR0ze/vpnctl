@@ -23,14 +23,20 @@
 #-----------------------------------------------------------------------------------------------
 # Simple GTK+ UI for openvpn and tooling for simple VPN access
 # https://developer.gnome.org/gtk3/stable
+# https://lazka.github.io/pgi-docs/Gtk-3.0/classes.html
 # https://github.com/ruby-gnome2/ruby-gnome2/tree/master/gtk3
 #-----------------------------------------------------------------------------------------------
+$root_path = File.dirname(File.expand_path(__FILE__))
+$root_path = '/usr/share/vpnctl' if $root_path == '/usr/bin'
+$LOAD_PATH.unshift($root_path)
 load File.join(File.dirname(File.expand_path(__FILE__)), "vpnctl-cli")
 
 # Packages available in cyberlinux or arch linux
 begin
   require 'gtk3'
   require 'colorize'
+  require 'lib/model'
+  require 'lib/config'
 rescue Exception => e
   mod = e.message.split(' ').last.sub('/', '-')
   !puts("Error: install missing package with 'sudo package -S ruby-#{mod}'") and exit
@@ -48,11 +54,11 @@ class VpnCtl
 #    @enabled_icon = File.join(@icon_path, 'vpnctl-enabled.png')
 #    @targeted_icon = File.join(@icon_path, 'vpnctl-targeted.png')
 #    @disabled_icon  = File.join(@icon_path, 'vpnctl-disabled.png')
-#
+
     # Configure config and logging
     Config.init('vpnctl.yml')
-#    Log.init(path:, queue:true, stdout:true)
-#
+    Log.init(path:"#{$root_path}/vpnctl.log", queue:true, stdout:true)
+
 #    # VPN thread communication
 #    @halt = false
 #    @vpn_comm_in = nil
@@ -61,18 +67,26 @@ class VpnCtl
     connect_signals
   end
 
+  # Inflate UI elements from glade xml files and create any dynamic UI needed
+  # including populating ui widgets with data.
   def construct_ui
-
-    # Inflate UI elements from glade xml files
     @builder = Gtk::Builder.new
     @builder.add_from_file(File.join(@datapath, 'ui/vpnctl.ui'))
 
-    # Setup cursors
+    # Setup mouse pointers
     @cursor_waiting = Gdk::Cursor.new("wait")
     @cursor_grabbing = Gdk::Cursor.new("grabbing")
 
     # Get handles for important ui objects
     @main = @builder.get_object("main-window")
+    @vpnlist_box = @builder.get_object("vpn-list-box")
+    @vpnlist_btns = []
+    @vpn_name = @builder.get_object("vpn-name-entry")
+    @vpn_ovpn = @builder.get_object("vpn-ovpn-entry")
+    @vpn_logintype = @builder.get_object("vpn-logintype-entry")
+    @vpn_user = @builder.get_object("vpn-username-entry")
+    @vpn_pass = @builder.get_object("vpn-password-entry")
+    @vpn_routes = @builder.get_object("vpn-routes-entry")
 
     # Configure main window
     @main.icon = GdkPixbuf::Pixbuf.new(file:@icon)
@@ -100,26 +114,12 @@ class VpnCtl
 
   # Read in vpns from config file and populate list
   def populate_vpn_list
-    vpnlist_box = @builder.get_object("vpn-list-box")
-    vpnlist_view = @builder.get_object("vpn-list-view")
-    vpnlist_scroll = @builder.get_object("vpn-list-scroll")
-
-    for i in 1..8
-      button = Gtk::Button.new(label: "foo#{i}")
-      button.signal_connect('clicked'){|btn|
-        #btn.override_background_color(:normal, Gdk::RGBA.parse("#888"))
-        #btn.name = btn.name == 'button-active' ? '' : 'button-active'
-        puts(btn.style.methods)
-      }
-      vpnlist_box.pack_start(button)
-      button.show
-    end
-
-    #@vpnlist.add_with_viewport()
-    # gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(formula_scrolled_window), GTK_POLICY_ALWAYS, GTK_POLICY_ALWAYS);
-    # gtk_widget_set_size_request(formula_scrolled_window, 400, 200);
-    # gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(formula_scrolled_window), image);
-    # gtk_box_pack_start(GTK_BOX(formula_h_box), formula_scrolled_window, FALSE, FALSE, 0);
+    Config.vpns.each{|vpn|
+      btn = Gtk::Button.new(label: vpn.name)
+      @vpnlist_btns << btn
+      @vpnlist_box.pack_start(btn)
+      btn.show
+    }
   end
 
   # Setup window to be able to be repositioned
@@ -198,6 +198,25 @@ class VpnCtl
     # Target Apps switch
     @builder.get_object("target-apps-switch").signal_connect('notify::active'){|sw|
       puts("Target Apps: #{sw.active?}")
+    }
+
+    # Configure signals/actions for vpnlist
+    @vpnlist_btns.each{|x|
+      x.signal_connect('clicked'){|btn|
+        vpn = Config.vpn(btn.label)
+
+        # Configure active styles
+        @vpnlist_btns.each{|y| y.style_context.remove_class('button-active')}
+        btn.style_context.add_class('button-active')
+
+        # Load active vpn into editor
+        @vpn_name.text = vpn.name
+        @vpn_ovpn.text = File.basename(vpn.ovpn)
+        @vpn_logintype.text = vpn.login.type || ""
+        @vpn_user.text = vpn.login.user || ""
+        @vpn_pass.text = vpn.login.pass || ""
+        @vpn_routes.text = vpn.routes * ","
+      }
     }
   end
 

@@ -36,12 +36,11 @@ button {
   border: 2px solid #d3d3d3;
   background-color: #f0f0f0;
 }
-button:hover, button:active {
+button:hover, button:active, .button-active {
   margin: 2px;
   border: 2px solid #fff;
 }
-#button-active,
-button:active {
+button:active, .button-active {
   color: white;
   background-color: #888;
 }

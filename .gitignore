@@ -4,5 +4,6 @@
 *.kra~
 *.ui#
 *.png~
+*.log
 Gemfile.lock
 openvpn.yml
