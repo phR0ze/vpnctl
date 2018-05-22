@@ -175,6 +175,10 @@ textview {
 #app-scrolled {
   margin-top: 5px;
 }
+#vpn-content scrolledwindow {
+  margin-top: 5px;
+  border-radius: 0;
+}
 
 /* Footer box
  *******************************************************************************/

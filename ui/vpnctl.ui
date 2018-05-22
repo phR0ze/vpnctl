@@ -83,7 +83,7 @@
                         <property name="can_focus">True</property>
                         <property name="min_content_height">335</property>
                         <child>
-                          <object class="GtkViewport" id="vpn-list-view">
+                          <object class="GtkViewport">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="shadow_type">etched-in</property>
@@ -592,13 +592,12 @@
                             </child>
                             <child>
                               <object class="GtkScrolledWindow">
-                                <property name="name">app-scrolled</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="shadow_type">in</property>
+                                <property name="min_content_height">49</property>
                                 <child>
-                                  <object class="GtkTextView">
-                                    <property name="name">app-textview</property>
+                                  <object class="GtkTextView" id="target-apps-text">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                   </object>

@@ -24,77 +24,84 @@ module Config
 
   # Get all vpns as vpn objects
   def vpns
-    vpns = []
     vpns_yml = Config['vpns']
     raise("couldn't find 'vpns' in config") if vpns_yml.nil?
 
-    # Load each vpn
-    vpns_yml.each{|x|
-      valid = true
-
-      # Load name
-      name = x['name']
-      Log.warn("vpn missing name") if !name
-      valid = false if !name
-
-      # Load default
-      default = x['default']
-
-      # Load login
-      login = x['login']
-      type = login ? login['type'] : nil
-      user = login ? login['user'] : nil
-      pass = login ? login['pass'] : nil
-      Log.warn("vpn missing login") if !login
-      valid = false if !login
-
-      # Load routes
-      routes = x['routes'] || []
-
-      # Load ovpn config
-      ovpn = x['ovpn']
-      valid = false if !ovpn
-      Log.warn("vpn missing login") if !ovpn
-      ovpn_auth_path = ovpn ? File.join(File.dirname(ovpn), "#{name}.auth") : nil
-
-      # Create vpn model object
-      vpns << Model::Vpn.new(name, Model::Login.new(type, user, pass),
-        routes, ovpn, ovpn_auth_path, default) if valid
-    }
-
-    return vpns
+    return vpns_yml.map{|x| vpn(x['name'])}
   end
 
   # Get vpn by name and validate its config
   # @param name [String] name of the vpn to use
   # @returns vpn [Vpn] struct containing the vpn properties
   def vpn(name)
-    vpns = Config['vpns']
+    vpn = Config['vpns'].find{|x| x['name'] == name }
+    raise("couldn't find vpn '#{name}' in config") if !vpn
 
-    raise("couldn't find 'vpns' in config") if vpns.nil?
-    vpn = vpns.find{|x| x['name'] == name }
+    # Load name
+    name = vpn['name']
+    Log.warn("vpn missing name") if !name
+    valid = false if !name
 
-    raise("couldn't find '#{name}' in config") if vpn.nil?
+    # Load login
     login = vpn['login']
+    type = login ? login['type'] : nil
+    user = login ? login['user'] : nil
+    pass = login ? login['pass'] : nil
+    Log.warn("vpn missing login") if !login
+    valid = false if !login
 
-    raise("couldn't find 'login' in config") if login.nil?
-    type = login['type']
+    # Load routes
+    routes = vpn['routes'] || []
 
-    raise("couldn't find 'type' in config") if type.nil?
-    user = login['user']
-
-    raise("couldn't find 'user' in config") if user.nil?
-    pass = login['pass']
-
-    routes = vpn['routes']
-    raise("couldn't find 'routes' in config") if routes.nil?
-
+    # Load ovpn config
     ovpn = vpn['ovpn']
-    raise("couldn't find 'ovpn' in config") if ovpn.nil?
+    valid = false if !ovpn
+    Log.warn("vpn missing login") if !ovpn
+    ovpn_auth_path = ovpn ? File.join(File.dirname(ovpn), "#{name}.auth") : nil
 
+    # Load target apps
+    target = vpn['target'] || false
+    apps = vpn['apps'] || []
+
+    # Load default
     default = vpn['default'] || false
 
     return Model::Vpn.new(name, Model::Login.new(type, user, pass),
-      routes || [], ovpn, File.join(File.dirname(ovpn), "#{name}.auth"), default)
+      routes || [], ovpn, ovpn_auth_path, target, apps, default)
+  end
+
+  # Create a new vpn
+  def add_vpn(name)
+    Config['vpns'] << {
+      'name' => name,
+      'login' => {
+        'type' => '',
+        'user' => '',
+        'pass' => ''
+      },
+      'routes' => [],
+      'ovpn' => '',
+      'default' => false
+    }
+  end
+
+  # Delete a vpn by name
+  # @param name [String] name of the vpn to delete
+  def del_vpn(name)
+    Config['vpns'].delete_if{|x| x['name'] == name}
+  end
+
+  # Update the given vpn in the config
+  # @param name [String] name of the vpn to use as a key
+  # @param vpn [VPN] vpn to update
+  def update_vpn(name, vpn)
+    raw = Config['vpns'].find{|x| x['name'] == name}
+    raw['name'] = vpn.name
+    raw['login']['type'] = vpn.login.type
+    raw['login']['user'] = vpn.login.user
+    raw['login']['pass'] = vpn.login.pass
+    raw['routes'] = vpn.routes
+    raw['ovpn'] = vpn.ovpn
+    raw['default'] = vpn.default
   end
 end

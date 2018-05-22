@@ -58,6 +58,8 @@ module Model
   # @param routes [Array] list of routes to add for vpn
   # @param ovpn [String] path to ovpn configuration file
   # @param auth [String] path to auth file named <name>.auth
+  # @param target [Bool] target specific apps
+  # @param apps [Array(String)] apps to target
   # @param default [Bool] True if default vpn
-  Vpn = Struct.new(:name, :login, :routes, :ovpn, :auth, :default)
+  Vpn = Struct.new(:name, :login, :routes, :ovpn, :auth, :target, :apps, :default)
 end

@@ -87,6 +87,8 @@ class VpnCtl
     @vpn_user = @builder.get_object("vpn-username-entry")
     @vpn_pass = @builder.get_object("vpn-password-entry")
     @vpn_routes = @builder.get_object("vpn-routes-entry")
+    @vpn_target_apps_sw = @builder.get_object("target-apps-switch")
+    @vpn_target_apps = @builder.get_object("target-apps-text")
     @vpn_default = @builder.get_object("default-switch")
 
     # Configure main window
@@ -98,7 +100,16 @@ class VpnCtl
 #    @settings = create_settings_window
     self.enable_repositioning(@main)
     self.populate_vpn_list
-    self.apply_styles
+    self.applystyles(@main)
+  end
+
+  # Select the default or first vpn if doesn't exist
+  def select_default_or_first_vpn
+    if btn = @vpnlist_btns.find{|x| Config.vpn(x.label).default}
+      self.select_vpn(btn.label)
+    else
+      self.select_vpn(@vpnlist_btns.first.label) if @vpnlist_btns.any?
+    end
   end
 
   # Read in vpns from config file and populate list
@@ -110,12 +121,7 @@ class VpnCtl
       @vpnlist_box.pack_start(btn)
       btn.show
     }
-
-    # Select only vpn if none others
-    self.select_vpn(@vpnlist_btns.first.label) if @vpnlist_btns.size == 1
-
-    # Select default vpn
-    @vpnlist_btns.each{|x| self.select_vpn(x.label) if Config.vpn(x.label).default}
+    self.select_default_or_first_vpn
   end
 
   # Select the given vpn from the list and populate ui
@@ -135,12 +141,61 @@ class VpnCtl
 
     # Load active vpn into editor
     @vpn_name.text = vpn.name
-    @vpn_ovpn.text = File.basename(vpn.ovpn)
+    @vpn_ovpn.text = vpn.ovpn
     @vpn_logintype.text = vpn.login.type || ""
     @vpn_user.text = vpn.login.user || ""
     @vpn_pass.text = vpn.login.pass || ""
     @vpn_routes.text = vpn.routes * ","
+    @vpn_target_apps_sw.set_active(vpn.default)
     @vpn_default.set_active(vpn.default)
+  end
+
+  # Add a new vpn button and select it
+  def add_vpn
+
+    # Ensure the vpn has a unique name
+    name = "New VPN"
+    i = (0..10).find{|i| !@vpnlist_btns.any?{|x| x.label == "#{name} #{i}"}}
+
+    # Create the vpn and select it
+    btn = Gtk::Button.new(label: "#{name} #{i}")
+    Config.add_vpn(btn.label)
+    @vpnlist_btns << btn
+    @vpnlist_box.pack_start(btn)
+    btn.signal_connect('clicked'){|x| self.select_vpn(x.label)}
+    btn.show
+    self.applystyles(btn)
+    self.select_vpn(btn.label)
+  end
+
+  # Remove the currently selected vpn
+  def del_vpn
+    if btn = @vpnlist_btns.find{|x| x.style_context.has_class?('button-active')}
+      @vpnlist_btns.delete(btn)
+      @vpnlist_box.remove(btn)
+      Config.del_vpn(btn.label)
+      self.select_default_or_first_vpn
+    end
+  end
+
+  # Save the vpn currently in the editor
+  def save_vpn
+    if btn = @vpnlist_btns.find{|x| x.style_context.has_class?('button-active')}
+      vpn = Model::Vpn.new(
+        @vpn_name.text,
+        Model::Login.new(
+          @vpn_logintype.text,
+          @vpn_user.text,
+          @vpn_pass.text
+        ),
+        @vpn_routes.text.split(','),
+        @vpn_ovpn.text,
+        nil,
+        @vpn_default.active?
+      )
+      Config.update_vpn(btn.label, vpn)
+    end
+    Config.save
   end
 
   # Configure signals
@@ -158,29 +213,16 @@ class VpnCtl
     }
 
     # Save button
-    @builder.get_object("save-button").signal_connect('clicked'){|btn|
-      puts("Save: clicked")
-    }
+    @builder.get_object("save-button").signal_connect('clicked'){|btn| self.save_vpn}
 
     # Cancel button
     @builder.get_object("cancel-button").signal_connect('clicked'){|btn|
       puts("Cancel: clicked")
     }
 
-    # Add vpn button
-    @builder.get_object("add-button").signal_connect('clicked'){|btn|
-      puts("Add vpn: clicked")
-    }
-
-    # Delete vpn button
-    @builder.get_object("delete-button").signal_connect('clicked'){|btn|
-      puts("Delete vpn: clicked")
-    }
-
-    # Default switch
-    @vpn_default.signal_connect('notify::active'){|sw|
-      puts("Default: #{sw.active?}")
-    }
+    # Add/del vpn button
+    @builder.get_object("add-button").signal_connect('clicked'){|btn| self.add_vpn}
+    @builder.get_object("delete-button").signal_connect('clicked'){|btn| self.del_vpn}
 
     # Target Apps switch
     @builder.get_object("target-apps-switch").signal_connect('notify::active'){|sw|
@@ -192,15 +234,16 @@ class VpnCtl
   end
 
   # Initialize css for all widgets recursively
-  def apply_styles
-    css = Gtk::CssProvider.new
-    css.load(path: File.join(@datapath, 'ui/styles.css'))
-    applystyles = ->(widget){
-      widget.style_context.add_provider(css, Gtk::StyleProvider::PRIORITY_USER)
-      return unless widget.respond_to?(:children)
-      widget.children.each{|x| applystyles.call(x)}
-    }
-    applystyles.call(@main)
+  # @param widget [GtkWidget] widget to apply styles to
+  def applystyles(widget)
+    if !defined?(@css)
+      @css = Gtk::CssProvider.new
+      @css.load(path: File.join(@datapath, 'ui/styles.css'))
+    end
+
+    widget.style_context.add_provider(@css, Gtk::StyleProvider::PRIORITY_USER)
+    return unless widget.respond_to?(:children)
+    widget.children.each{|x| self.applystyles(x)}
   end
 
   # Setup window to be able to be repositioned
