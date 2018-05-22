@@ -79,7 +79,7 @@ entry {
 /* Textview styling */
 textview {
   padding: 5px;
-  border-radius: 4px;
+  border-radius: 2px;
   background-color: #f3f3f3;
 }
 
@@ -164,7 +164,7 @@ textview {
   margin-right: 12px;
 }
 .vpn-content-entry {
-  min-width: 220px;
+  min-width: 300px;
 }
 #app-switch-box {
   margin-top: 10px;
@@ -177,7 +177,6 @@ textview {
 }
 #vpn-content scrolledwindow {
   margin-top: 5px;
-  border-radius: 0;
 }
 
 /* Footer box
@@ -190,6 +189,7 @@ textview {
 }
 #footer button {
   color: white;
+  min-width: 100px;
 }
 #footer button:active {
   background-color: #888;

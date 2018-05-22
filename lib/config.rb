@@ -26,7 +26,6 @@ module Config
   def vpns
     vpns_yml = Config['vpns']
     raise("couldn't find 'vpns' in config") if vpns_yml.nil?
-
     return vpns_yml.map{|x| vpn(x['name'])}
   end
 
@@ -67,7 +66,7 @@ module Config
     default = vpn['default'] || false
 
     return Model::Vpn.new(name, Model::Login.new(type, user, pass),
-      routes || [], ovpn, ovpn_auth_path, target, apps, default)
+      routes, ovpn, ovpn_auth_path, target, apps, default)
   end
 
   # Create a new vpn
@@ -81,6 +80,8 @@ module Config
       },
       'routes' => [],
       'ovpn' => '',
+      'target' => false,
+      'apps' => [],
       'default' => false
     }
   end
@@ -102,6 +103,8 @@ module Config
     raw['login']['pass'] = vpn.login.pass
     raw['routes'] = vpn.routes
     raw['ovpn'] = vpn.ovpn
+    raw['target'] = vpn.target
+    raw['apps'] = vpn.apps
     raw['default'] = vpn.default
   end
 end

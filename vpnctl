@@ -146,7 +146,8 @@ class VpnCtl
     @vpn_user.text = vpn.login.user || ""
     @vpn_pass.text = vpn.login.pass || ""
     @vpn_routes.text = vpn.routes * ","
-    @vpn_target_apps_sw.set_active(vpn.default)
+    @vpn_target_apps_sw.set_active(vpn.target)
+    @vpn_target_apps.buffer.text = vpn.apps * "\n"
     @vpn_default.set_active(vpn.default)
   end
 
@@ -191,6 +192,8 @@ class VpnCtl
         @vpn_routes.text.split(','),
         @vpn_ovpn.text,
         nil,
+        @vpn_target_apps_sw.active?,
+        @vpn_target_apps.buffer.text.split("\n"),
         @vpn_default.active?
       )
       Config.update_vpn(btn.label, vpn)
