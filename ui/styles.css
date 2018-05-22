@@ -83,6 +83,18 @@ textview {
   background-color: #f3f3f3;
 }
 
+/* Combo box styling */
+combobox {
+  min-width: 100px;
+  border-radius: 2px;
+  background-color: #f3f3f3;
+}
+combobox box.linked button.combo {
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+}
+
 /* Title box
  *******************************************************************************/
 #title-box {
@@ -150,6 +162,13 @@ textview {
   border-radius: 8px;
   background-color: #999;
 }
+#vpn-content combobox {
+  margin-left: 45px;
+  min-width: 292px;
+}
+#vpn-ovpn-entry {
+  font-size: 16px;
+}
 .vpn-content-frame-label {
   color: #EEE;
   font-size: 12px;
@@ -164,16 +183,13 @@ textview {
   margin-right: 12px;
 }
 .vpn-content-entry {
-  min-width: 300px;
+  min-width: 280px;
 }
 #app-switch-box {
   margin-top: 10px;
 }
 #app-switch-box label {
   margin-left: 10px;
-}
-#app-scrolled {
-  margin-top: 5px;
 }
 #vpn-content scrolledwindow {
   margin-top: 5px;

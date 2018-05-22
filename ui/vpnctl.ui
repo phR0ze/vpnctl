@@ -276,6 +276,7 @@
                                 </child>
                                 <child>
                                   <object class="GtkEntry" id="vpn-ovpn-entry">
+                                    <property name="name">vpn-ovpn-entry</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                     <property name="placeholder_text" translatable="yes">Associated VPN config</property>
@@ -339,7 +340,7 @@
                                   <object class="GtkLabel">
                                     <property name="visible">True</property>
                                     <property name="can_focus">False</property>
-                                    <property name="label" translatable="yes">Logintype:</property>
+                                    <property name="label" translatable="yes">Type:</property>
                                     <style>
                                       <class name="vpn-content-label"/>
                                     </style>
@@ -351,18 +352,21 @@
                                   </packing>
                                 </child>
                                 <child>
-                                  <object class="GtkEntry" id="vpn-logintype-entry">
+                                  <object class="GtkComboBoxText" id="vpn-logintype-combo">
                                     <property name="visible">True</property>
-                                    <property name="can_focus">True</property>
-                                    <property name="placeholder_text" translatable="yes">Ask for password</property>
-                                    <style>
-                                      <class name="vpn-content-entry"/>
-                                    </style>
+                                    <property name="can_focus">False</property>
+                                    <property name="has_frame">False</property>
+                                    <property name="has_entry">True</property>
+                                    <child internal-child="entry">
+                                      <object class="GtkEntry">
+                                        <property name="can_focus">False</property>
+                                        <property name="placeholder_text" translatable="yes">Choose a login type</property>
+                                      </object>
+                                    </child>
                                   </object>
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">True</property>
-                                    <property name="pack_type">end</property>
                                     <property name="position">1</property>
                                   </packing>
                                 </child>
@@ -561,7 +565,7 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <child>
-                                  <object class="GtkSwitch" id="target-apps-switch">
+                                  <object class="GtkSwitch" id="apps-switch">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                   </object>
@@ -597,7 +601,7 @@
                                 <property name="shadow_type">in</property>
                                 <property name="min_content_height">49</property>
                                 <child>
-                                  <object class="GtkTextView" id="target-apps-text">
+                                  <object class="GtkTextView" id="apps-text">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
                                   </object>

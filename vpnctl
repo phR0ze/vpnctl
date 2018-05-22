@@ -83,12 +83,12 @@ class VpnCtl
     @vpnlist_btns = []
     @vpn_name = @builder.get_object("vpn-name-entry")
     @vpn_ovpn = @builder.get_object("vpn-ovpn-entry")
-    @vpn_logintype = @builder.get_object("vpn-logintype-entry")
+    @vpn_logintype = @builder.get_object("vpn-logintype-combo")
     @vpn_user = @builder.get_object("vpn-username-entry")
     @vpn_pass = @builder.get_object("vpn-password-entry")
     @vpn_routes = @builder.get_object("vpn-routes-entry")
-    @vpn_target_apps_sw = @builder.get_object("target-apps-switch")
-    @vpn_target_apps = @builder.get_object("target-apps-text")
+    @vpn_apps_sw = @builder.get_object("apps-switch")
+    @vpn_apps = @builder.get_object("apps-text")
     @vpn_default = @builder.get_object("default-switch")
 
     # Configure main window
@@ -99,7 +99,7 @@ class VpnCtl
 #    @logwin, @logview, @logiter = create_log_window
 #    @settings = create_settings_window
     self.enable_repositioning(@main)
-    self.populate_vpn_list
+    self.populate_widgets
     self.applystyles(@main)
   end
 
@@ -112,9 +112,15 @@ class VpnCtl
     end
   end
 
-  # Read in vpns from config file and populate list
-  # then select the default or first one
-  def populate_vpn_list
+  # Populate various widgets
+  def populate_widgets
+
+    # Populate the login type combo box
+    @vpn_logintype.append_text(Model::PassTypeDisplay[Model::PassTypes.ask])
+    @vpn_logintype.append_text(Model::PassTypeDisplay[Model::PassTypes.save])
+
+    # Read in vpns from config file and populate list
+    # then select the default or first one
     Config.vpns.each{|vpn|
       btn = Gtk::Button.new(label: vpn.name)
       @vpnlist_btns << btn
@@ -142,12 +148,15 @@ class VpnCtl
     # Load active vpn into editor
     @vpn_name.text = vpn.name
     @vpn_ovpn.text = vpn.ovpn
-    @vpn_logintype.text = vpn.login.type || ""
+
+    # Show login display type, default to ask
+    @vpn_logintype.active = vpn.login.type == Model::PassTypes.ask ? 0 : 1
+
     @vpn_user.text = vpn.login.user || ""
     @vpn_pass.text = vpn.login.pass || ""
     @vpn_routes.text = vpn.routes * ","
-    @vpn_target_apps_sw.set_active(vpn.target)
-    @vpn_target_apps.buffer.text = vpn.apps * "\n"
+    @vpn_apps_sw.set_active(vpn.target)
+    @vpn_apps.buffer.text = vpn.apps * "\n"
     @vpn_default.set_active(vpn.default)
   end
 
@@ -182,18 +191,21 @@ class VpnCtl
   # Save the vpn currently in the editor
   def save_vpn
     if btn = @vpnlist_btns.find{|x| x.style_context.has_class?('button-active')}
+      #type = vpn.login.type ? Model::PassTypeDisplay[vpn.login.type] : Model::PassTypeDisplay[Model::PassTypes.ask]
+      #@vpn_logintype.text = type
+
       vpn = Model::Vpn.new(
         @vpn_name.text,
         Model::Login.new(
-          @vpn_logintype.text,
+          @vpn_logintype.active == 0 ? Model::PassTypes.ask : Model::PassTypes.save,
           @vpn_user.text,
           @vpn_pass.text
         ),
         @vpn_routes.text.split(','),
         @vpn_ovpn.text,
         nil,
-        @vpn_target_apps_sw.active?,
-        @vpn_target_apps.buffer.text.split("\n"),
+        @vpn_apps_sw.active?,
+        @vpn_apps.buffer.text.split("\n"),
         @vpn_default.active?
       )
       Config.update_vpn(btn.label, vpn)
@@ -214,11 +226,7 @@ class VpnCtl
     @builder.get_object("connect-button").signal_connect('clicked'){|btn|
       puts("Connect: clicked")
     }
-
-    # Save button
     @builder.get_object("save-button").signal_connect('clicked'){|btn| self.save_vpn}
-
-    # Cancel button
     @builder.get_object("cancel-button").signal_connect('clicked'){|btn|
       puts("Cancel: clicked")
     }
@@ -226,11 +234,6 @@ class VpnCtl
     # Add/del vpn button
     @builder.get_object("add-button").signal_connect('clicked'){|btn| self.add_vpn}
     @builder.get_object("delete-button").signal_connect('clicked'){|btn| self.del_vpn}
-
-    # Target Apps switch
-    @builder.get_object("target-apps-switch").signal_connect('notify::active'){|sw|
-      puts("Target Apps: #{sw.active?}")
-    }
 
     # Configure signals/actions for vpnlist
     @vpnlist_btns.each{|x| x.signal_connect('clicked'){|btn| self.select_vpn(btn.label)}}

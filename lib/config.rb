@@ -74,7 +74,7 @@ module Config
     Config['vpns'] << {
       'name' => name,
       'login' => {
-        'type' => '',
+        'type' => 'ask',
         'user' => '',
         'pass' => ''
       },
