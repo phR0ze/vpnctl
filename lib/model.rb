@@ -46,6 +46,11 @@ module Model
     save: 'save',
   })
 
+  State = OpenStruct.new({
+    active: 'active',
+    connected: 'connected',
+  })
+
   # Capture structure of login
   # @param type [String] PassTypes string
   # @param user [String] name of the user
@@ -61,5 +66,7 @@ module Model
   # @param target [Bool] target specific apps
   # @param apps [Array(String)] apps to target
   # @param default [Bool] True if default vpn
-  Vpn = Struct.new(:name, :login, :routes, :ovpn, :auth, :target, :apps, :default)
+  # @param state [String] state of the vpn
+  # @param btn [GtkButton] associated button
+  Vpn = Struct.new(:name, :login, :routes, :ovpn, :auth, :target, :apps, :default, :state, :btn)
 end

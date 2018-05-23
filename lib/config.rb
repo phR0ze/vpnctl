@@ -31,8 +31,7 @@ module Config
 
   # Get all vpns as vpn objects
   def vpns
-    yml = Config['vpns']
-    raise("couldn't find 'vpns' in config") if yml.nil?
+    yml = Config['vpns'] || []
     return yml.map{|x| vpn(x['name'])}
   end
 
@@ -78,19 +77,25 @@ module Config
 
   # Create a new vpn
   def add_vpn(name)
+    Config['vpns'] = [] if !Config['vpns']
+    vpn = Model::Vpn.new(name, Model::Login.new('ask', '', ''),
+      [], '', '', false, [], false)
+
     Config['vpns'] << {
       'name' => name,
       'login' => {
-        'type' => 'ask',
-        'user' => '',
-        'pass' => ''
+        'type' => vpn.login.type,
+        'user' => vpn.login.user,
+        'pass' => vpn.login.pass
       },
-      'routes' => [],
-      'ovpn' => '',
-      'target' => false,
-      'apps' => [],
-      'default' => false
+      'routes' => vpn.routes,
+      'ovpn' => vpn.ovpn,
+      'target' => vpn.target,
+      'apps' => vpn.apps,
+      'default' => vpn.default
     }
+
+    return vpn
   end
 
   # Delete a vpn by name
@@ -100,14 +105,13 @@ module Config
   end
 
   # Update the given vpn in the config
-  # @param name [String] name of the vpn to use as a key
   # @param vpn [VPN] vpn to update
-  def update_vpn(name, vpn)
+  def update_vpn(vpn)
 
     # Ensure only one vpn is set as the default
     Config['vpns'].each{|x| x['default'] = false} if vpn.default
     
-    raw = Config['vpns'].find{|x| x['name'] == name}
+    raw = Config['vpns'].find{|x| x['name'] == vpn.btn.label}
     raw['name'] = vpn.name
     raw['login']['type'] = vpn.login.type
     raw['login']['user'] = vpn.login.user

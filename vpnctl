@@ -57,8 +57,11 @@ class VpnCtl
 
     # Configure config and logging
     Config.init('vpnctl.yml')
-    @ovpns = Dir[File.join(Config.ovpn_path, '*')]
     Log.init(path:"#{$root_path}/vpnctl.log", queue:true, stdout:true)
+
+    # Track VPN state
+    @vpns = Config.vpns
+    @ovpns = Dir[File.join(Config.ovpn_path, '*')]
 
 #    # VPN thread communication
 #    @halt = false
@@ -79,7 +82,6 @@ class VpnCtl
     @cursor_grabbing = Gdk::Cursor.new("grabbing")
 
     # Get handles for important ui objects
-    @vpnlist_btns = []
     @main = @builder.get_object("main-window")
     @vpnlist_box = @builder.get_object("vpn-list-box")
     @vpn_name = @builder.get_object("vpn-name-entry")
@@ -109,10 +111,10 @@ class VpnCtl
 
   # Select the default or first vpn if doesn't exist
   def select_default_or_first_vpn
-    if btn = @vpnlist_btns.find{|x| Config.vpn(x.label).default}
-      self.select_vpn(btn.label)
+    if vpn = @vpns.find{|x| vpn.default}
+      self.select_vpn(vpn.name)
     else
-      self.select_vpn(@vpnlist_btns.first.label) if @vpnlist_btns.any?
+      self.select_vpn(@vpns.first.name) if @vpns.any?
     end
   end
 
@@ -127,11 +129,10 @@ class VpnCtl
 
     # Read in vpns from config file and populate list
     # then select the default or first one
-    Config.vpns.each{|vpn|
-      btn = Gtk::Button.new(label: vpn.name)
-      @vpnlist_btns << btn
-      @vpnlist_box.pack_start(btn)
-      btn.show
+    @vpns.each{|vpn|
+      vpn.btn = Gtk::Button.new(label: vpn.name)
+      @vpnlist_box.pack_start(vpn.btn)
+      vpn.btn.show
     }
     self.select_default_or_first_vpn
   end
@@ -140,16 +141,6 @@ class VpnCtl
   # @param name [String] name of the vpn to select
   def select_vpn(name)
     vpn = Config.vpn(name)
-
-    # Configure active styles
-    @vpnlist_btns.each{|x|
-      ctx = x.style_context
-      if x.label == name
-        ctx.add_class('button-active') if !ctx.has_class?('button-active')
-      else
-        ctx.remove_class('button-active')
-      end
-    }
 
     # Load active vpn into editor
     @vpn_name.text = vpn.name
@@ -169,55 +160,70 @@ class VpnCtl
     @vpn_default.set_active(vpn.default)
   end
 
+  # Configure styling for a given vpn and state
+  def select_styling(name, state)
+    @vpns.each{|x|
+      ctx = x.style_context
+      if x.label == name
+
+        # Not active or connected so make it active
+        if !ctx.has_class?('button-connect') && !ctx.has_class?('button-active')
+          ctx.add_class('button-active')
+
+        # Currently connected, show disconnect button
+        elsif ctx.has_class?('button-connect')
+          ctx = @connect_btn.style_context
+          ctx.add_class('button-disconnect') if !ctx.has_class?('button-disconnect')
+          @connect_btn.label = "Disconnect"
+        end
+      else
+        ctx.remove_class('button-active')
+      end
+    }
+  end
+
   # Add a new vpn button and select it
   def add_vpn
-
     # Ensure the vpn has a unique name
     name = "New VPN"
-    i = (0..10).find{|i| !@vpnlist_btns.any?{|x| x.label == "#{name} #{i}"}}
+    i = (0..10).find{|i| !@vpns.any?{|x| x.name == "#{name} #{i}"}}
 
     # Create the vpn and select it
-    btn = Gtk::Button.new(label: "#{name} #{i}")
-    Config.add_vpn(btn.label)
-    @vpnlist_btns << btn
-    @vpnlist_box.pack_start(btn)
-    btn.signal_connect('clicked'){|x| self.select_vpn(x.label)}
-    btn.show
-    self.applystyles(btn)
-    self.select_vpn(btn.label)
+    vpn = Config.add_vpn(name)
+    vpn.btn = Gtk::Button.new(label: "#{name} #{i}")
+    @vpnlist_box.pack_start(vpn.btn)
+    vpn.btn.signal_connect('clicked'){|x| self.select_vpn(x.label)}
+    vpn.btn.show
+    self.applystyles(vpn.btn)
+    self.select_vpn(vpn.name)
   end
 
   # Remove the currently selected vpn
   def del_vpn
-    if btn = @vpnlist_btns.find{|x| x.style_context.has_class?('button-active')}
-      @vpnlist_btns.delete(btn)
-      @vpnlist_box.remove(btn)
-      Config.del_vpn(btn.label)
+    if vpn = @vpns.find{|x| x.state == Model::State.active}
+      @vps.delete(vpn)
+      @vpnlist_box.remove(vpn.btn)
+      Config.del_vpn(vpn.name)
       self.select_default_or_first_vpn
     end
   end
 
   # Save the vpn currently in the editor
   def save_vpn
-    if btn = @vpnlist_btns.find{|x| x.style_context.has_class?('button-active')}
-      vpn = Model::Vpn.new(
-        @vpn_name.text,
-        Model::Login.new(
-          @vpn_logintype.active == 0 ? Model::PassTypes.ask : Model::PassTypes.save,
-          @vpn_user.text,
-          @vpn_pass.text
-        ),
-        @vpn_routes.text.split(','),
-        File.join(Config.ovpn_path, @vpn_ovpn.active_text),
-        nil,
-        @vpn_apps_sw.active?,
-        @vpn_apps.buffer.text.split("\n"),
-        @vpn_default.active?
-      )
-      Config.update_vpn(btn.label, vpn)
+    if vpn = @vpns.find{|x| x.state == Model::State.active}
+      vpn.name = @vpn_name.text
+      vpn.login.type = @vpn_logintype.active == 0 ? Model::PassTypes.ask : Model::PassTypes.save
+      vpn.login.user = @vpn_user.text
+      vpn.login.pass = @vpn_pass.text
+      vpn.routes = @vpn_routes.text.split(',')
+      vpn.ovpn = File.join(Config.ovpn_path, @vpn_ovpn.active_text)
+      vpn.target = @vpn_apps_sw.active?
+      vpn.apps = @vpn_apps.buffer.text.split("\n")
+      vpn.default = @vpn_default.active?
+      Config.update_vpn(vpn)
 
-      # Update the button label if needed
-      btn.label = vpn.name
+      # Update the button label after as its used as itentifier first
+      vpn.btn.label = vpn.name
     end
     Config.save
   end
@@ -225,11 +231,10 @@ class VpnCtl
   # Connect/disconnect to the selected vpn
   def connect_or_disconnect
     self.save_vpn
-    if btn = @vpnlist_btns.find{|x| x.style_context.has_class?('button-active')}
-      vpn = Config.vpn(btn.label)
+    if vpn = @vpns.find{|x| x.state == Model::State.active}
 
       # Configure connected styles
-      ctx = btn.style_context
+      ctx = vpn.btn.style_context
       ctx.add_class('button-connect') if !ctx.has_class?('button-connect')
       ctx.remove_class('button-active') if ctx.has_class?('button-active')
 
@@ -258,7 +263,7 @@ class VpnCtl
     @builder.get_object("delete-button").signal_connect('clicked'){|btn| self.del_vpn}
 
     # Configure signals/actions for vpnlist
-    @vpnlist_btns.each{|x| x.signal_connect('clicked'){|btn| self.select_vpn(btn.label)}}
+    @vpns.each{|x| x.btn.signal_connect('clicked'){|btn| self.select_vpn(btn.label)}}
   end
 
   # Initialize css for all widgets recursively
