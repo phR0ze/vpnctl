@@ -57,6 +57,7 @@ class VpnCtl
 
     # Configure config and logging
     Config.init('vpnctl.yml')
+    @ovpns = Dir[File.join(Config.ovpn_path, '*')]
     Log.init(path:"#{$root_path}/vpnctl.log", queue:true, stdout:true)
 
 #    # VPN thread communication
@@ -78,11 +79,12 @@ class VpnCtl
     @cursor_grabbing = Gdk::Cursor.new("grabbing")
 
     # Get handles for important ui objects
+    @vpnlist_btns = []
     @main = @builder.get_object("main-window")
     @vpnlist_box = @builder.get_object("vpn-list-box")
-    @vpnlist_btns = []
     @vpn_name = @builder.get_object("vpn-name-entry")
-    @vpn_ovpn = @builder.get_object("vpn-ovpn-entry")
+    @vpn_ovpn = @builder.get_object("vpn-ovpn-combo")
+    @vpn_ovpn_entry = @builder.get_object("vpn-ovpn-entry")
     @vpn_logintype = @builder.get_object("vpn-logintype-combo")
     @vpn_user = @builder.get_object("vpn-username-entry")
     @vpn_pass = @builder.get_object("vpn-password-entry")
@@ -90,6 +92,8 @@ class VpnCtl
     @vpn_apps_sw = @builder.get_object("apps-switch")
     @vpn_apps = @builder.get_object("apps-text")
     @vpn_default = @builder.get_object("default-switch")
+    @connect_btn = @builder.get_object("connect-button")
+    @save_btn = @builder.get_object("save-button")
 
     # Configure main window
     @main.icon = GdkPixbuf::Pixbuf.new(file:@icon)
@@ -114,6 +118,8 @@ class VpnCtl
 
   # Populate various widgets
   def populate_widgets
+    # Populate ovpn configs
+    @ovpns.each{|x| @vpn_ovpn.append_text(File.basename(x))}
 
     # Populate the login type combo box
     @vpn_logintype.append_text(Model::PassTypeDisplay[Model::PassTypes.ask])
@@ -147,9 +153,12 @@ class VpnCtl
 
     # Load active vpn into editor
     @vpn_name.text = vpn.name
-    @vpn_ovpn.text = vpn.ovpn
 
-    # Show login display type, default to ask
+    # Select the corrct ovpn
+    @vpn_ovpn.active = @ovpns.index{|x| x == vpn.ovpn} || -1
+    @vpn_ovpn_entry.text = '' if @vpn_ovpn.active == -1
+
+    # Select the correct login type
     @vpn_logintype.active = vpn.login.type == Model::PassTypes.ask ? 0 : 1
 
     @vpn_user.text = vpn.login.user || ""
@@ -191,9 +200,6 @@ class VpnCtl
   # Save the vpn currently in the editor
   def save_vpn
     if btn = @vpnlist_btns.find{|x| x.style_context.has_class?('button-active')}
-      #type = vpn.login.type ? Model::PassTypeDisplay[vpn.login.type] : Model::PassTypeDisplay[Model::PassTypes.ask]
-      #@vpn_logintype.text = type
-
       vpn = Model::Vpn.new(
         @vpn_name.text,
         Model::Login.new(
@@ -202,15 +208,36 @@ class VpnCtl
           @vpn_pass.text
         ),
         @vpn_routes.text.split(','),
-        @vpn_ovpn.text,
+        File.join(Config.ovpn_path, @vpn_ovpn.active_text),
         nil,
         @vpn_apps_sw.active?,
         @vpn_apps.buffer.text.split("\n"),
         @vpn_default.active?
       )
       Config.update_vpn(btn.label, vpn)
+
+      # Update the button label if needed
+      btn.label = vpn.name
     end
     Config.save
+  end
+
+  # Connect/disconnect to the selected vpn
+  def connect_or_disconnect
+    self.save_vpn
+    if btn = @vpnlist_btns.find{|x| x.style_context.has_class?('button-active')}
+      vpn = Config.vpn(btn.label)
+
+      # Configure connected styles
+      ctx = btn.style_context
+      ctx.add_class('button-connect') if !ctx.has_class?('button-connect')
+      ctx.remove_class('button-active') if ctx.has_class?('button-active')
+
+      # Change connect button to disconnect
+      ctx = @connect_btn.style_context
+      ctx.add_class('button-disconnect') if !ctx.has_class?('button-disconnect')
+      @connect_btn.label = "Disconnect"
+    end
   end
 
   # Configure signals
@@ -223,13 +250,8 @@ class VpnCtl
     }
 
     # Connect button
-    @builder.get_object("connect-button").signal_connect('clicked'){|btn|
-      puts("Connect: clicked")
-    }
-    @builder.get_object("save-button").signal_connect('clicked'){|btn| self.save_vpn}
-    @builder.get_object("cancel-button").signal_connect('clicked'){|btn|
-      puts("Cancel: clicked")
-    }
+    @connect_btn.signal_connect('clicked'){|x| self.connect_or_disconnect}
+    @save_btn.signal_connect('clicked'){|x| self.save_vpn}
 
     # Add/del vpn button
     @builder.get_object("add-button").signal_connect('clicked'){|btn| self.add_vpn}

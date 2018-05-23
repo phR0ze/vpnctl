@@ -22,11 +22,18 @@
 module Config
   extend self
 
+  # Read in the ovpn path
+  def ovpn_path
+    default = '/etc/openvpn/client'
+    yml = Config['general']
+    return yml ? (yml['ovpn_path'] ? yml['ovpn_path'] : default) : default
+  end
+
   # Get all vpns as vpn objects
   def vpns
-    vpns_yml = Config['vpns']
-    raise("couldn't find 'vpns' in config") if vpns_yml.nil?
-    return vpns_yml.map{|x| vpn(x['name'])}
+    yml = Config['vpns']
+    raise("couldn't find 'vpns' in config") if yml.nil?
+    return yml.map{|x| vpn(x['name'])}
   end
 
   # Get vpn by name and validate its config
@@ -96,6 +103,10 @@ module Config
   # @param name [String] name of the vpn to use as a key
   # @param vpn [VPN] vpn to update
   def update_vpn(name, vpn)
+
+    # Ensure only one vpn is set as the default
+    Config['vpns'].each{|x| x['default'] = false} if vpn.default
+    
     raw = Config['vpns'].find{|x| x['name'] == name}
     raw['name'] = vpn.name
     raw['login']['type'] = vpn.login.type
