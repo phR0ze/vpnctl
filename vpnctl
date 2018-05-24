@@ -277,6 +277,9 @@ class VpnCtl
     @builder.get_object("add-button").signal_connect('clicked'){|btn| self.add_vpn}
     @builder.get_object("delete-button").signal_connect('clicked'){|btn| self.del_vpn}
 
+    # Show password
+    @vpn_pass.signal_connect('icon-press'){|entry| entry.visibility = !entry.visibility?}
+
     # Configure signals/actions for vpnlist
     @vpns.each{|x| x.btn.signal_connect('clicked'){|btn| self.select_vpn(btn.label)}}
   end
