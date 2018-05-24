@@ -60,6 +60,7 @@ class VpnCtl
     Log.init(path:"#{$root_path}/vpnctl.log", queue:true, stdout:true)
 
     # Track VPN state
+    @vpn = nil    # active vpn
     @vpns = Config.vpns
     @ovpns = Dir[File.join(Config.ovpn_path, '*')]
 
@@ -140,24 +141,24 @@ class VpnCtl
   # Select the given vpn from the list and populate ui
   # @param name [String] name of the vpn to select
   def select_vpn(name)
-    vpn = @vpns.find{|x| x.name == name}
-    @vpn_name.text = vpn.name
-    @vpn_ovpn.active = @ovpns.index{|x| x == vpn.ovpn} || -1
+    @vpn = @vpns.find{|x| x.name == name}
+    @vpn_name.text = @vpn.name
+    @vpn_ovpn.active = @ovpns.index{|x| x == @vpn.ovpn} || -1
     @vpn_ovpn_entry.text = '' if @vpn_ovpn.active == -1
-    @vpn_logintype.active = vpn.login.type == Model::PassTypes.ask ? 0 : 1
-    @vpn_user.text = vpn.login.user || ""
-    @vpn_pass.text = vpn.login.pass || ""
-    @vpn_routes.text = vpn.routes * ","
-    @vpn_apps_sw.set_active(vpn.target)
-    @vpn_apps.buffer.text = vpn.apps * "\n"
-    @vpn_default.set_active(vpn.default)
-    self.select_styling(name, Model::State.active)
+    @vpn_logintype.active = @vpn.login.type == Model::PassTypes.ask ? 0 : 1
+    @vpn_user.text = @vpn.login.user || ""
+    @vpn_pass.text = @vpn.login.pass || ""
+    @vpn_routes.text = @vpn.routes * ","
+    @vpn_apps_sw.active = @vpn.target
+    @vpn_apps.buffer.text = @vpn.apps * "\n"
+    @vpn_default.active = @vpn.default
+    self.select_styling(Model::State.active)
   end
 
   # Configure styling for a given vpn and state
-  # @param name [String] name of the vpn to work with
-  # @param sate [Model::State] state to set styling for
-  def select_styling(name, state)
+  # @param state [Model::State] state to set styling for
+  # @param force [Bool] true then set state regardless
+  def select_styling(state, force:false)
     set_disconnect = ->(){
       _ctx = @connect_btn.style_context
       _ctx.remove_class('button-connect') if _ctx.has_class?('button-connect')
@@ -174,10 +175,11 @@ class VpnCtl
     @vpns.each{|vpn|
       ctx = vpn.btn.style_context
       if state == Model::State.active
-        if vpn.name == name
-          if vpn.state != Model::State.connected
+        if vpn.name == @vpn.name
+          if force || vpn.state != Model::State.connected
             vpn.state = state
             ctx.add_class('button-active') if !ctx.has_class?('button-active')
+            ctx.remove_class('button-connect') if ctx.has_class?('button-connect')
             set_connect.call
           else
             set_disconnect.call
@@ -186,7 +188,7 @@ class VpnCtl
           vpn.state = nil
           ctx.remove_class('button-active') if ctx.has_class?('button-active')
         end
-      elsif ctx.has_class?('button-active')
+      elsif vpn.name == @vpn.name
         vpn.state = state
         ctx.add_class('button-connect') if !ctx.has_class?('button-connect')
         set_disconnect.call
@@ -200,51 +202,62 @@ class VpnCtl
     # Ensure the vpn has a unique name
     name = "New VPN"
     i = (0..10).find{|i| !@vpns.any?{|x| x.name == "#{name} #{i}"}}
+    name = "#{name} #{i}"
 
     # Create the vpn and select it
     vpn = Config.add_vpn(name)
-    vpn.btn = Gtk::Button.new(label: "#{name} #{i}")
+    vpn.btn = Gtk::Button.new(label:name)
     @vpnlist_box.pack_start(vpn.btn)
     vpn.btn.signal_connect('clicked'){|x| self.select_vpn(x.label)}
     vpn.btn.show
+    @vpns << vpn
     self.applystyles(vpn.btn)
     self.select_vpn(vpn.name)
   end
 
   # Remove the currently selected vpn
   def del_vpn
-    if vpn = @vpns.find{|x| x.state == Model::State.active}
-      @vps.delete(vpn)
-      @vpnlist_box.remove(vpn.btn)
-      Config.del_vpn(vpn.name)
-      self.select_default_or_first_vpn
-    end
+    return unless @vpn
+    @vps.delete(@vpn)
+    @vpnlist_box.remove(@vpn.btn)
+    Config.del_vpn(@vpn.name)
+    @vpn = nil
+    self.select_default_or_first_vpn
   end
 
-  # Save the vpn currently in the editor
+  # Save the active vpn
   def save_vpn
-    if vpn = @vpns.find{|x| x.state == Model::State.active}
-      vpn.name = @vpn_name.text
-      vpn.login.type = @vpn_logintype.active == 0 ? Model::PassTypes.ask : Model::PassTypes.save
-      vpn.login.user = @vpn_user.text
-      vpn.login.pass = @vpn_pass.text
-      vpn.routes = @vpn_routes.text.split(',')
-      vpn.ovpn = File.join(Config.ovpn_path, @vpn_ovpn.active_text)
-      vpn.target = @vpn_apps_sw.active?
-      vpn.apps = @vpn_apps.buffer.text.split("\n")
-      vpn.default = @vpn_default.active?
-      Config.update_vpn(vpn)
+    return unless @vpn
+    @vpn.name = @vpn_name.text
+    @vpn.login.type = @vpn_logintype.active == 0 ? Model::PassTypes.ask : Model::PassTypes.save
+    @vpn.login.user = @vpn_user.text
+    @vpn.login.pass = @vpn_pass.text
+    @vpn.routes = @vpn_routes.text.split(',')
+    @vpn.ovpn = File.join(Config.ovpn_path, @vpn_ovpn.active_text)
+    @vpn.target = @vpn_apps_sw.active?
+    @vpn.apps = @vpn_apps.buffer.text.split("\n")
+    @vpn.default = @vpn_default.active?
+    Config.update_vpn(@vpn)
 
-      # Update the button label after as its used as itentifier first
-      vpn.btn.label = vpn.name
-    end
+    # Update the button label after as its used as itentifier first
+    @vpn.btn.label = @vpn.name
     Config.save
   end
 
   # Connect/disconnect to the selected vpn
   def connect_or_disconnect
     self.save_vpn
-    self.select_styling(nil, Model::State.connected)
+
+    # Connect the current connected vpn
+    if @vpn.state == Model::State.active
+      puts("VPN: #{@vpn.name} - connecting")
+      self.select_styling(Model::State.connected)
+
+    # Disconnect the current connected vpn
+    else
+      puts("VPN: #{@vpn.name} - disconnecting")
+      self.select_styling(Model::State.active, force:true)
+    end
   end
 
   # Configure signals
