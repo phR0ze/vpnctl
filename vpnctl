@@ -111,7 +111,7 @@ class VpnCtl
 
   # Select the default or first vpn if doesn't exist
   def select_default_or_first_vpn
-    if vpn = @vpns.find{|x| vpn.default}
+    if vpn = @vpns.find{|x| x.default}
       self.select_vpn(vpn.name)
     else
       self.select_vpn(@vpns.first.name) if @vpns.any?
@@ -140,44 +140,57 @@ class VpnCtl
   # Select the given vpn from the list and populate ui
   # @param name [String] name of the vpn to select
   def select_vpn(name)
-    vpn = Config.vpn(name)
-
-    # Load active vpn into editor
+    vpn = @vpns.find{|x| x.name == name}
     @vpn_name.text = vpn.name
-
-    # Select the corrct ovpn
     @vpn_ovpn.active = @ovpns.index{|x| x == vpn.ovpn} || -1
     @vpn_ovpn_entry.text = '' if @vpn_ovpn.active == -1
-
-    # Select the correct login type
     @vpn_logintype.active = vpn.login.type == Model::PassTypes.ask ? 0 : 1
-
     @vpn_user.text = vpn.login.user || ""
     @vpn_pass.text = vpn.login.pass || ""
     @vpn_routes.text = vpn.routes * ","
     @vpn_apps_sw.set_active(vpn.target)
     @vpn_apps.buffer.text = vpn.apps * "\n"
     @vpn_default.set_active(vpn.default)
+    self.select_styling(name, Model::State.active)
   end
 
   # Configure styling for a given vpn and state
+  # @param name [String] name of the vpn to work with
+  # @param sate [Model::State] state to set styling for
   def select_styling(name, state)
-    @vpns.each{|x|
-      ctx = x.style_context
-      if x.label == name
+    set_disconnect = ->(){
+      _ctx = @connect_btn.style_context
+      _ctx.remove_class('button-connect') if _ctx.has_class?('button-connect')
+      _ctx.add_class('button-disconnect') if !_ctx.has_class?('button-disconnect')
+      @connect_btn.label = "Disconnect"
+    }
+    set_connect = ->(){
+      _ctx = @connect_btn.style_context
+      _ctx.remove_class('button-disconnect') if _ctx.has_class?('button-disconnect')
+      _ctx.add_class('button-connect') if !_ctx.has_class?('button-connect')
+      @connect_btn.label = "Connect"
+    }
 
-        # Not active or connected so make it active
-        if !ctx.has_class?('button-connect') && !ctx.has_class?('button-active')
-          ctx.add_class('button-active')
-
-        # Currently connected, show disconnect button
-        elsif ctx.has_class?('button-connect')
-          ctx = @connect_btn.style_context
-          ctx.add_class('button-disconnect') if !ctx.has_class?('button-disconnect')
-          @connect_btn.label = "Disconnect"
+    @vpns.each{|vpn|
+      ctx = vpn.btn.style_context
+      if state == Model::State.active
+        if vpn.name == name
+          if vpn.state != Model::State.connected
+            vpn.state = state
+            ctx.add_class('button-active') if !ctx.has_class?('button-active')
+            set_connect.call
+          else
+            set_disconnect.call
+          end
+        elsif vpn.state == Model::State.active
+          vpn.state = nil
+          ctx.remove_class('button-active') if ctx.has_class?('button-active')
         end
-      else
-        ctx.remove_class('button-active')
+      elsif ctx.has_class?('button-active')
+        vpn.state = state
+        ctx.add_class('button-connect') if !ctx.has_class?('button-connect')
+        set_disconnect.call
+        ctx.remove_class('button-active') if ctx.has_class?('button-active')
       end
     }
   end
@@ -231,18 +244,7 @@ class VpnCtl
   # Connect/disconnect to the selected vpn
   def connect_or_disconnect
     self.save_vpn
-    if vpn = @vpns.find{|x| x.state == Model::State.active}
-
-      # Configure connected styles
-      ctx = vpn.btn.style_context
-      ctx.add_class('button-connect') if !ctx.has_class?('button-connect')
-      ctx.remove_class('button-active') if ctx.has_class?('button-active')
-
-      # Change connect button to disconnect
-      ctx = @connect_btn.style_context
-      ctx.add_class('button-disconnect') if !ctx.has_class?('button-disconnect')
-      @connect_btn.label = "Disconnect"
-    end
+    self.select_styling(nil, Model::State.connected)
   end
 
   # Configure signals
