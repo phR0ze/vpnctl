@@ -119,7 +119,6 @@ class VpnCtl
     end
   end
 
-  # Populate various widgets
   def populate_widgets
     # Populate ovpn configs
     @ovpns.each{|x| @vpn_ovpn.append_text(File.basename(x))}
@@ -138,6 +137,24 @@ class VpnCtl
     self.select_default_or_first_vpn
   end
 
+  def activate_pass
+    ctx = @vpn_pass.style_context
+    ctx.remove_class('entry-deactivate')
+    @vpn_pass.text = @vpn.login.pass || ""
+    @vpn_pass.placeholder_text = "VPN password"
+    @vpn_pass.editable = true
+    @vpn_pass.secondary_icon_activatable = true
+  end
+
+  def deactivate_pass
+    ctx = @vpn_pass.style_context
+    ctx.add_class('entry-deactivate')
+    @vpn_pass.text = ""
+    @vpn_pass.placeholder_text = ""
+    @vpn_pass.editable = false
+    @vpn_pass.secondary_icon_activatable = false
+  end
+
   # Select the given vpn from the list and populate ui
   # @param name [String] name of the vpn to select
   def select_vpn(name)
@@ -147,7 +164,8 @@ class VpnCtl
     @vpn_ovpn_entry.text = '' if @vpn_ovpn.active == -1
     @vpn_logintype.active = @vpn.login.type == Model::PassTypes.ask ? 0 : 1
     @vpn_user.text = @vpn.login.user || ""
-    @vpn_pass.text = @vpn.login.pass || ""
+    activate_pass if @vpn.login.type == Model::PassTypes.save
+    deactivate_pass if @vpn.login.type != Model::PassTypes.save
     @vpn_routes.text = @vpn.routes * ","
     @vpn_apps_sw.active = @vpn.target
     @vpn_apps.buffer.text = @vpn.apps * "\n"
@@ -161,14 +179,14 @@ class VpnCtl
   def select_styling(state, force:false)
     set_disconnect = ->(){
       _ctx = @connect_btn.style_context
-      _ctx.remove_class('button-connect') if _ctx.has_class?('button-connect')
-      _ctx.add_class('button-disconnect') if !_ctx.has_class?('button-disconnect')
+      _ctx.remove_class('button-connect')
+      _ctx.add_class('button-disconnect')
       @connect_btn.label = "Disconnect"
     }
     set_connect = ->(){
       _ctx = @connect_btn.style_context
-      _ctx.remove_class('button-disconnect') if _ctx.has_class?('button-disconnect')
-      _ctx.add_class('button-connect') if !_ctx.has_class?('button-connect')
+      _ctx.remove_class('button-disconnect')
+      _ctx.add_class('button-connect')
       @connect_btn.label = "Connect"
     }
 
@@ -178,21 +196,21 @@ class VpnCtl
         if vpn.name == @vpn.name
           if force || vpn.state != Model::State.connected
             vpn.state = state
-            ctx.add_class('button-active') if !ctx.has_class?('button-active')
-            ctx.remove_class('button-connect') if ctx.has_class?('button-connect')
+            ctx.add_class('button-active')
+            ctx.remove_class('button-connect')
             set_connect.call
           else
             set_disconnect.call
           end
         elsif vpn.state == Model::State.active
           vpn.state = nil
-          ctx.remove_class('button-active') if ctx.has_class?('button-active')
+          ctx.remove_class('button-active')
         end
       elsif vpn.name == @vpn.name
         vpn.state = state
-        ctx.add_class('button-connect') if !ctx.has_class?('button-connect')
+        ctx.add_class('button-connect')
         set_disconnect.call
-        ctx.remove_class('button-active') if ctx.has_class?('button-active')
+        ctx.remove_class('button-active')
       end
     }
   end
@@ -279,6 +297,10 @@ class VpnCtl
 
     # Show password
     @vpn_pass.signal_connect('icon-press'){|entry| entry.visibility = !entry.visibility?}
+    @vpn_logintype.signal_connect('changed'){|combo|
+      activate_pass if @vpn_logintype.active != 0
+      deactivate_pass if @vpn_logintype.active == 0
+    }
 
     # Configure signals/actions for vpnlist
     @vpns.each{|x| x.btn.signal_connect('clicked'){|btn| self.select_vpn(btn.label)}}

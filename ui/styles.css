@@ -90,6 +90,9 @@ entry {
   border-radius: 2px;
   background-color: #f3f3f3;
 }
+.entry-deactivate {
+  background-color: #c3c3c3;
+}
 
 /* Textview styling */
 textview {
