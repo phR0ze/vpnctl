@@ -11,7 +11,7 @@
   all: unset;
 }
 
-#main-window {
+window, dialog {
   color: black;
   border-radius: 8px;
   background-color: #484848;
@@ -31,6 +31,7 @@ button {
   font-weight: bold;
   font-family: 'GE Inspira';
   margin: 2px;
+  min-width: 100px;
   min-height: 30px;
   border-radius: 8px;
   border: 2px solid #d3d3d3;
@@ -40,23 +41,20 @@ button:hover, button:active, .button-active {
   margin: 2px;
   border: 2px solid #fff;
 }
-button:active, .button-active {
+button:active, .button-active, .button-action, .button-ok, .button-cancel, .button-disconnect {
   color: white;
   background-color: #888;
 }
-.button-connect {
-  color: white;
-  min-width: 100px;
+.button-action {
   background-color: #36a4db;
 }
-.button-disconnect {
-  color: white;
-  min-width: 120px;
+.button-cancel, .button-disconnect {
   background-color: #d85b56;
 }
-.button-save {
-  color: white;
-  min-width: 100px;
+.button-disconnect {
+  min-width: 120px;
+}
+.button-ok {
   background-color: #69c069;
 }
 
@@ -84,10 +82,13 @@ switch slider {
 
 /* Entry styling */
 entry {
-  color: black;
+  color: #000;
+  font-size: 18px;
+  font-weight: bold;
+  font-family: 'GE Inspira';
   padding: 4px 5px;
+  border-radius: 4px;
   border: 1px solid #c5c5c5;
-  border-radius: 2px;
   background-color: #f3f3f3;
 }
 .entry-deactivate {
@@ -115,13 +116,19 @@ combobox box.linked button.combo {
 
 /* Title box
  *******************************************************************************/
-#title-box {
+.title-box {
   padding-left: 5px;
 }
-#title-label {
+.title-label {
   margin-left: 15px;
   color: #d9d9d9;
   font-size: 70px;
+  font-weight: bold;
+  font-family: 'GE Inspira';
+}
+.subtitle-label {
+  color: #d9d9d9;
+  font-size: 30px;
   font-weight: bold;
   font-family: 'GE Inspira';
 }
@@ -220,7 +227,4 @@ combobox box.linked button.combo {
   font-size: 20px;
   margin-left: 10px;
   margin-right: 30px;
-}
-#footer button:active {
-  background-color: #888;
 }

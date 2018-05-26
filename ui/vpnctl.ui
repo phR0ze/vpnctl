@@ -4,7 +4,6 @@
   <requires lib="gtk+" version="3.20"/>
   <!-- interface-css-provider-path styles.css -->
   <object class="GtkWindow" id="main-window">
-    <property name="name">main-window</property>
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="resizable">False</property>
@@ -20,7 +19,6 @@
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkBox">
-            <property name="name">title-box</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
@@ -39,10 +37,12 @@
             </child>
             <child>
               <object class="GtkLabel">
-                <property name="name">title-label</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">VpnControl</property>
+                <style>
+                  <class name="title-label"/>
+                </style>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -51,6 +51,9 @@
                 <property name="position">1</property>
               </packing>
             </child>
+            <style>
+              <class name="title-box"/>
+            </style>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -710,12 +713,11 @@
                 <child>
                   <object class="GtkButton" id="connect-button">
                     <property name="label">Connect</property>
-                    <property name="name">connect-button</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
                     <style>
-                      <class name="button-connect"/>
+                      <class name="button-action"/>
                     </style>
                   </object>
                   <packing>
@@ -727,12 +729,11 @@
                 <child>
                   <object class="GtkButton" id="save-button">
                     <property name="label">Save</property>
-                    <property name="name">save-button</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
                     <style>
-                      <class name="button-save"/>
+                      <class name="button-ok"/>
                     </style>
                   </object>
                   <packing>

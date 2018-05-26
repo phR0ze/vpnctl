@@ -77,13 +77,15 @@ class VpnCtl
   def construct_ui
     @builder = Gtk::Builder.new
     @builder.add_from_file(File.join(@datapath, 'ui/vpnctl.ui'))
+    @builder.add_from_file(File.join(@datapath, 'ui/pass.ui'))
 
     # Setup mouse pointers
     @cursor_waiting = Gdk::Cursor.new("wait")
     @cursor_grabbing = Gdk::Cursor.new("grabbing")
 
     # Get handles for important ui objects
-    @main = @builder.get_object("main-window")
+    @main_win = @builder.get_object("main-window")
+    @pass_diag = @builder.get_object("pass-diag")
     @vpnlist_box = @builder.get_object("vpn-list-box")
     @vpn_name = @builder.get_object("vpn-name-entry")
     @vpn_ovpn = @builder.get_object("vpn-ovpn-combo")
@@ -98,16 +100,34 @@ class VpnCtl
     @connect_btn = @builder.get_object("connect-button")
     @save_btn = @builder.get_object("save-button")
 
-    # Configure main window
-    @main.icon = GdkPixbuf::Pixbuf.new(file:@icon)
+    # Configure windows/dialogs
+    @main_win.icon = GdkPixbuf::Pixbuf.new(file:@icon)
+    @pass_diag.transient_for = @main_win
 
 #    @tray = create_system_tray_icon
 #    @popup_menu = create_popup_menu
 #    @logwin, @logview, @logiter = create_log_window
 #    @settings = create_settings_window
-    self.enable_repositioning(@main)
+    self.enable_repositioning(@main_win)
     self.populate_widgets
-    self.applystyles(@main)
+    self.applystyles(@main_win)
+    self.applystyles(@pass_diag)
+  end
+
+  # Create dialog to retrieve password from user
+  # @returns password from user
+  def getpass
+    pass = ""
+
+    diag = Gtk::Dialog.new(parent: @main_win, title: "Enter password",
+      flags: [:modal, :destroy_with_parent], buttons: [["_OK", :ok], ["_Cancel", :cancel]])
+    response = diag.run
+    if response == :ok
+      
+    end
+
+    diag.destroy
+    return pass
   end
 
   # Select the default or first vpn if doesn't exist
@@ -137,7 +157,7 @@ class VpnCtl
     self.select_default_or_first_vpn
   end
 
-  def activate_pass
+  def activate_pass_entry
     ctx = @vpn_pass.style_context
     ctx.remove_class('entry-deactivate')
     @vpn_pass.text = @vpn.login.pass || ""
@@ -146,7 +166,7 @@ class VpnCtl
     @vpn_pass.secondary_icon_activatable = true
   end
 
-  def deactivate_pass
+  def deactivate_pass_entry
     ctx = @vpn_pass.style_context
     ctx.add_class('entry-deactivate')
     @vpn_pass.text = ""
@@ -164,8 +184,8 @@ class VpnCtl
     @vpn_ovpn_entry.text = '' if @vpn_ovpn.active == -1
     @vpn_logintype.active = @vpn.login.type == Model::PassTypes.ask ? 0 : 1
     @vpn_user.text = @vpn.login.user || ""
-    activate_pass if @vpn.login.type == Model::PassTypes.save
-    deactivate_pass if @vpn.login.type != Model::PassTypes.save
+    activate_pass_entry if @vpn.login.type == Model::PassTypes.save
+    deactivate_pass_entry if @vpn.login.type != Model::PassTypes.save
     @vpn_routes.text = @vpn.routes * ","
     @vpn_apps_sw.active = @vpn.target
     @vpn_apps.buffer.text = @vpn.apps * "\n"
@@ -179,14 +199,14 @@ class VpnCtl
   def select_styling(state, force:false)
     set_disconnect = ->(){
       _ctx = @connect_btn.style_context
-      _ctx.remove_class('button-connect')
+      _ctx.remove_class('button-action')
       _ctx.add_class('button-disconnect')
       @connect_btn.label = "Disconnect"
     }
     set_connect = ->(){
       _ctx = @connect_btn.style_context
       _ctx.remove_class('button-disconnect')
-      _ctx.add_class('button-connect')
+      _ctx.add_class('button-action')
       @connect_btn.label = "Connect"
     }
 
@@ -197,7 +217,7 @@ class VpnCtl
           if force || vpn.state != Model::State.connected
             vpn.state = state
             ctx.add_class('button-active')
-            ctx.remove_class('button-connect')
+            ctx.remove_class('button-action')
             set_connect.call
           else
             set_disconnect.call
@@ -208,7 +228,7 @@ class VpnCtl
         end
       elsif vpn.name == @vpn.name
         vpn.state = state
-        ctx.add_class('button-connect')
+        ctx.add_class('button-action')
         set_disconnect.call
         ctx.remove_class('button-active')
       end
@@ -268,7 +288,8 @@ class VpnCtl
 
     # Connect the current connected vpn
     if @vpn.state == Model::State.active
-      puts("VPN: #{@vpn.name} - connecting")
+      pass = self.getpass
+      puts(pass)
       self.select_styling(Model::State.connected)
 
     # Disconnect the current connected vpn
@@ -282,8 +303,8 @@ class VpnCtl
   def connect_signals
 
     # Exit on Alt-F4 or Escape
-    @main.signal_connect('destroy'){ Gtk.main_quit }
-    @main.signal_connect('key_press_event'){|w,e|
+    @main_win.signal_connect('destroy'){ Gtk.main_quit }
+    @main_win.signal_connect('key_press_event'){|w,e|
       Gtk.main_quit if e.keyval == Gdk::Keyval::KEY_Escape
     }
 
@@ -298,8 +319,8 @@ class VpnCtl
     # Show password
     @vpn_pass.signal_connect('icon-press'){|entry| entry.visibility = !entry.visibility?}
     @vpn_logintype.signal_connect('changed'){|combo|
-      activate_pass if @vpn_logintype.active != 0
-      deactivate_pass if @vpn_logintype.active == 0
+      activate_pass_entry if @vpn_logintype.active != 0
+      deactivate_pass_entry if @vpn_logintype.active == 0
     }
 
     # Configure signals/actions for vpnlist
