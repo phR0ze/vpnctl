@@ -119,14 +119,17 @@ class VpnCtl
   def getpass
     pass = ""
 
-    diag = Gtk::Dialog.new(parent: @main_win, title: "Enter password",
-      flags: [:modal, :destroy_with_parent], buttons: [["_OK", :ok], ["_Cancel", :cancel]])
-    response = diag.run
-    if response == :ok
-      
-    end
+#    diag = Gtk::Dialog.new(parent: @main_win, title: "Enter password",
+#      flags: [:modal, :destroy_with_parent], buttons: [["_OK", :ok], ["_Cancel", :cancel]])
+#    response = diag.run
+#    if response == :ok
+#      
+#    end
+#
+#    diag.destroy
+    @pass_diag.show
 
-    diag.destroy
+    reposition_on_parent(@pass_diag, @main_win)
     return pass
   end
 
@@ -338,6 +341,21 @@ class VpnCtl
     widget.style_context.add_provider(@css, Gtk::StyleProvider::PRIORITY_USER)
     return unless widget.respond_to?(:children)
     widget.children.each{|x| self.applystyles(x)}
+  end
+
+  # Reposition the given window on the parent window
+  # @param child [GtkWindow] child window to reposition
+  # @param parent [GtkWindow] parent window to reposition relative to
+  # @param y [Integer] y position offset
+  def reposition_on_parent(child, parent, y:20)
+    px, py = parent.position
+    pw, ph = parent.size
+    cw, ch = child.size
+
+    cx = px + (pw/2 - cw/2)
+    cy = py + (ph/2 - ch/2) - y
+
+    child.move(cx, cy)
   end
 
   # Setup window to be able to be repositioned
