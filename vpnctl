@@ -24,6 +24,7 @@
 # Simple GTK+ UI for openvpn and tooling for simple VPN access
 # https://developer.gnome.org/gtk3/stable
 # https://lazka.github.io/pgi-docs/Gtk-3.0/classes.html
+# https://lazka.github.io/pgi-docs/Gdk-3.0/constants.html
 # https://github.com/ruby-gnome2/ruby-gnome2/tree/master/gtk3
 #-----------------------------------------------------------------------------------------------
 $root_path = File.dirname(File.expand_path(__FILE__))
@@ -86,6 +87,7 @@ class VpnCtl
     # Get handles for important ui objects
     @main_win = @builder.get_object("main-window")
     @pass_diag = @builder.get_object("pass-diag")
+    @pass_entry = @builder.get_object("pass-diag-entry")
     @vpnlist_box = @builder.get_object("vpn-list-box")
     @vpn_name = @builder.get_object("vpn-name-entry")
     @vpn_ovpn = @builder.get_object("vpn-ovpn-combo")
@@ -112,25 +114,6 @@ class VpnCtl
     self.populate_widgets
     self.applystyles(@main_win)
     self.applystyles(@pass_diag)
-  end
-
-  # Create dialog to retrieve password from user
-  # @returns password from user
-  def getpass
-    pass = ""
-
-#    diag = Gtk::Dialog.new(parent: @main_win, title: "Enter password",
-#      flags: [:modal, :destroy_with_parent], buttons: [["_OK", :ok], ["_Cancel", :cancel]])
-#    response = diag.run
-#    if response == :ok
-#      
-#    end
-#
-#    diag.destroy
-    @pass_diag.show
-
-    reposition_on_parent(@pass_diag, @main_win)
-    return pass
   end
 
   # Select the default or first vpn if doesn't exist
@@ -272,6 +255,7 @@ class VpnCtl
     @vpn.name = @vpn_name.text
     @vpn.login.type = @vpn_logintype.active == 0 ? Model::PassTypes.ask : Model::PassTypes.save
     @vpn.login.user = @vpn_user.text
+
     @vpn.login.pass = @vpn_pass.text
     @vpn.routes = @vpn_routes.text.split(',')
     @vpn.ovpn = File.join(Config.ovpn_path, @vpn_ovpn.active_text)
@@ -285,13 +269,23 @@ class VpnCtl
     Config.save
   end
 
+  # Re-implemented blocking dialog run
+  def getpass
+  end
+
   # Connect/disconnect to the selected vpn
   def connect_or_disconnect
     self.save_vpn
 
     # Connect the current connected vpn
     if @vpn.state == Model::State.active
-      pass = self.getpass
+      pass = @vpn.login.pass if @vpn.login.type == Model::PassTypes.save
+      if @vpn.login.type == Model::PassTypes.ask
+        #reposition_on_parent(@pass_diag, @main_win)
+        pass = @pass_entry.text if @pass_diag.run == Gtk::ResponseType::OK
+        @pass_entry.text = ""
+        @pass_diag.hide
+      end
       puts(pass)
       self.select_styling(Model::State.connected)
 
@@ -328,6 +322,19 @@ class VpnCtl
 
     # Configure signals/actions for vpnlist
     @vpns.each{|x| x.btn.signal_connect('clicked'){|btn| self.select_vpn(btn.label)}}
+
+    # Configure pass dialog signals
+    @pass_diag.signal_connect('key_press_event'){|w,e|
+      if e.keyval == Gdk::Keyval::KEY_Return
+        @pass_diag.signal_emit(:response, Gtk::ResponseType::OK)
+      end
+    }
+    @builder.get_object("pass-diag-ok").signal_connect('clicked'){|btn|
+      @pass_diag.signal_emit(:response, Gtk::ResponseType::OK)
+    }
+    @builder.get_object("pass-diag-cancel").signal_connect('clicked'){|btn|
+      @pass_diag.signal_emit(:response, Gtk::ResponseType::CANCEL)
+    }
   end
 
   # Initialize css for all widgets recursively
