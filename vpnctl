@@ -78,7 +78,6 @@ class VpnCtl
   def construct_ui
     @builder = Gtk::Builder.new
     @builder.add_from_file(File.join(@datapath, 'ui/vpnctl.ui'))
-    @builder.add_from_file(File.join(@datapath, 'ui/pass.ui'))
 
     # Setup mouse pointers
     @cursor_waiting = Gdk::Cursor.new("wait")
@@ -104,7 +103,6 @@ class VpnCtl
 
     # Configure windows/dialogs
     @main_win.icon = GdkPixbuf::Pixbuf.new(file:@icon)
-    @pass_diag.transient_for = @main_win
 
 #    @tray = create_system_tray_icon
 #    @popup_menu = create_popup_menu
@@ -269,10 +267,6 @@ class VpnCtl
     Config.save
   end
 
-  # Re-implemented blocking dialog run
-  def getpass
-  end
-
   # Connect/disconnect to the selected vpn
   def connect_or_disconnect
     self.save_vpn
@@ -281,7 +275,6 @@ class VpnCtl
     if @vpn.state == Model::State.active
       pass = @vpn.login.pass if @vpn.login.type == Model::PassTypes.save
       if @vpn.login.type == Model::PassTypes.ask
-        #reposition_on_parent(@pass_diag, @main_win)
         pass = @pass_entry.text if @pass_diag.run == Gtk::ResponseType::OK
         @pass_entry.text = ""
         @pass_diag.hide
@@ -348,21 +341,6 @@ class VpnCtl
     widget.style_context.add_provider(@css, Gtk::StyleProvider::PRIORITY_USER)
     return unless widget.respond_to?(:children)
     widget.children.each{|x| self.applystyles(x)}
-  end
-
-  # Reposition the given window on the parent window
-  # @param child [GtkWindow] child window to reposition
-  # @param parent [GtkWindow] parent window to reposition relative to
-  # @param y [Integer] y position offset
-  def reposition_on_parent(child, parent, y:20)
-    px, py = parent.position
-    pw, ph = parent.size
-    cw, ch = child.size
-
-    cx = px + (pw/2 - cw/2)
-    cy = py + (ph/2 - ch/2) - y
-
-    child.move(cx, cy)
   end
 
   # Setup window to be able to be repositioned
