@@ -38,6 +38,7 @@ begin
   require 'colorize'
   require 'lib/model'
   require 'lib/config'
+  require 'lib/gtkassist'
 rescue Exception => e
   mod = e.message.split(' ').last.sub('/', '-')
   !puts("Error: install missing package with 'sudo package -S ruby-#{mod}'") and exit
@@ -78,6 +79,7 @@ class VpnCtl
   def construct_ui
     @builder = Gtk::Builder.new
     @builder.add_from_file(File.join(@datapath, 'ui/vpnctl.ui'))
+    GtkAssist.load_styles(File.join(@datapath, 'ui/styles.css'))
 
     # Setup mouse pointers
     @cursor_waiting = Gdk::Cursor.new("wait")
@@ -85,8 +87,6 @@ class VpnCtl
 
     # Get handles for important ui objects
     @main_win = @builder.get_object("main-window")
-    @pass_diag = @builder.get_object("pass-diag")
-    @pass_entry = @builder.get_object("pass-diag-entry")
     @vpnlist_box = @builder.get_object("vpn-list-box")
     @vpn_name = @builder.get_object("vpn-name-entry")
     @vpn_ovpn = @builder.get_object("vpn-ovpn-combo")
@@ -110,8 +110,7 @@ class VpnCtl
 #    @settings = create_settings_window
     self.enable_repositioning(@main_win)
     self.populate_widgets
-    self.applystyles(@main_win)
-    self.applystyles(@pass_diag)
+    GtkAssist.apply_styles(@main_win)
   end
 
   # Select the default or first vpn if doesn't exist
@@ -233,7 +232,7 @@ class VpnCtl
     vpn.btn.signal_connect('clicked'){|x| self.select_vpn(x.label)}
     vpn.btn.show
     @vpns << vpn
-    self.applystyles(vpn.btn)
+    GtkAssist.applystyles(vpn.btn)
     self.select_vpn(vpn.name)
   end
 
@@ -275,9 +274,12 @@ class VpnCtl
     if @vpn.state == Model::State.active
       pass = @vpn.login.pass if @vpn.login.type == Model::PassTypes.save
       if @vpn.login.type == Model::PassTypes.ask
-        pass = @pass_entry.text if @pass_diag.run == Gtk::ResponseType::OK
-        @pass_entry.text = ""
-        @pass_diag.hide
+        diag = GetPass.new(@main_win)
+        #x, y = @main_win.position
+        #@pass_diag.move(x, y)
+        #pass = @pass_entry.text if @pass_diag.run == Gtk::ResponseType::OK
+        #@pass_entry.text = ""
+        #@pass_diag.hide
       end
       puts(pass)
       self.select_styling(Model::State.connected)
@@ -315,32 +317,6 @@ class VpnCtl
 
     # Configure signals/actions for vpnlist
     @vpns.each{|x| x.btn.signal_connect('clicked'){|btn| self.select_vpn(btn.label)}}
-
-    # Configure pass dialog signals
-    @pass_diag.signal_connect('key_press_event'){|w,e|
-      if e.keyval == Gdk::Keyval::KEY_Return
-        @pass_diag.signal_emit(:response, Gtk::ResponseType::OK)
-      end
-    }
-    @builder.get_object("pass-diag-ok").signal_connect('clicked'){|btn|
-      @pass_diag.signal_emit(:response, Gtk::ResponseType::OK)
-    }
-    @builder.get_object("pass-diag-cancel").signal_connect('clicked'){|btn|
-      @pass_diag.signal_emit(:response, Gtk::ResponseType::CANCEL)
-    }
-  end
-
-  # Initialize css for all widgets recursively
-  # @param widget [GtkWidget] widget to apply styles to
-  def applystyles(widget)
-    if !defined?(@css)
-      @css = Gtk::CssProvider.new
-      @css.load(path: File.join(@datapath, 'ui/styles.css'))
-    end
-
-    widget.style_context.add_provider(@css, Gtk::StyleProvider::PRIORITY_USER)
-    return unless widget.respond_to?(:children)
-    widget.children.each{|x| self.applystyles(x)}
   end
 
   # Setup window to be able to be repositioned
