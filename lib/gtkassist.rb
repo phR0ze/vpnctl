@@ -24,13 +24,30 @@ require 'gtk3'
 
 module GtkAssist
   extend self
-  mattr_accessor(:css) 
+  mattr_accessor(:datapath)
+  mattr_accessor(:uipath)
+  mattr_accessor(:imagepath)
 
-  # Load styles from the given path
-  # @param path [String] path to styles to load
-  def load_styles(path)
+  mattr_accessor(:css)
+  mattr_accessor(:icon)
+  mattr_accessor(:image)
+
+  # Load paths and styles
+  # @param datapath [String] path to styles to load
+  # @param icon [String] image relative path to icon
+  # @param image [String] image relative path to larger image
+  def init(datapath, icon, image)
+    self.datapath = datapath
+    self.uipath = File.join(datapath, "ui")
+    self.imagepath = File.join(datapath, "images")
+
+    # Load styles
     self.css = Gtk::CssProvider.new
-    self.css.load(path: path)
+    self.css.load(path: File.join(self.uipath, "styles.css"))
+
+    # Load images
+    self.icon = GdkPixbuf::Pixbuf.new(file:File.join(self.imagepath, icon))
+    self.image = GdkPixbuf::Pixbuf.new(file:File.join(self.imagepath, image))
   end
 
   # Apply css for the widget and all children recursively
@@ -42,12 +59,14 @@ module GtkAssist
   end
 end
 
-class GetPass < Gtk::Dialog
+class Prompt < Gtk::Dialog
 
   # Create a new dialog
   # @param parent [Gtk::Widget] parent widget
-  def initialize(parent)
+  # @param title [String] title of the prompt dialog
+  def initialize(parent, title)
     @parent = parent
+    @title = title
 
     super(parent:parent, flags:[:modal, :destroy_with_parent],
       buttons:[["_OK", :ok], ["_Cancel", :cancel]])
@@ -57,15 +76,18 @@ class GetPass < Gtk::Dialog
     self.run
   end
 
-  def run
-    self.show
-  end
+  # Returns the entered value and state
+  # @return (string, state) value and :ok or :cancel
+  #def run
+  #end
 
   def add_content
     vbox = Gtk::Box.new(:vertical, 3)
-    #image = Gtk::Image.new(icon_name: "dialog-question", size: :dialog)
-    #vbox.pack_start(image, expand: false, fill: false, padding: 0)
+    title = Gtk::Label.new(@title)
+    image = Gtk::Image.new(pixbuf: GtkAssist.image)
 
+    vbox.pack_start(image, expand: false, fill: false, padding: 0)
+    vbox.pack_start(title, expand: false, fill: false, padding: 0)
     self.content_area.pack_start(vbox)
   end
 
