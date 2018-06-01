@@ -102,7 +102,7 @@ module Gas
     id = win.object_id
 
     win.signal_connect('button_press_event'){|w,e|
-      if e.button == 0                          # Start on repositioning on left mouse click
+      if e.button == 1                          # Start on repositioning on left mouse click
         self.reposition[id] = [e.x, e.y]            # Add window to repositioning hash for tracking
         win.window.set_cursor(self.cursor_grabbing) # Set cursor to grabbing for movement indication
         win.grab_add                            # Ignore all other widget input during movement
@@ -127,67 +127,78 @@ module Gas
       end
     }
   end
-end
 
-class Prompt
+  # Dialog wrapper for getting info from user
+  class Prompt
 
-  # Create a new dialog
-  # @param title [String] title of the prompt dialog
-  # @param parent [Gtk::Widget] parent widget
-  def initialize(title, parent:nil)
-    @parent = parent || Gas.main
-    @title = title
+    # Create a new dialog
+    # @param title [String] title of the prompt dialog
+    # @param parent [Gtk::Widget] parent widget
+    def initialize(title, parent:nil)
+      @parent = parent || Gas.main
+      @title = title
 
-    @diag = Gtk::Dialog.new(parent:@parent, flags:[:modal, :destroy_with_parent],
-      buttons:[["_OK", :ok], ["_Cancel", :cancel]])
+      @diag = Gtk::Dialog.new(parent:@parent, flags:[:modal, :destroy_with_parent],
+        buttons:[["_OK", :ok], ["_Cancel", :cancel]])
+      @diag.set_default_response(Gtk::ResponseType::CANCEL)
 
-    self.add_content
-    self.apply_styles
-  end
+      self.add_content
+      self.apply_styles
+    end
 
-  # Returns the entered string
-  def run
-    res = nil
-    res = "ok" if @diag.run == Gtk::ResponseType::OK
-    @diag.destroy
-    return res
-  end
+    # Returns the entered string
+    def run
+      res = nil
 
-  def add_content
-    vbox = Gtk::Box.new(:vertical, 3)
-    title = Gtk::Label.new(@title)
-    image = Gtk::Image.new(pixbuf: Gas.image)
+      #if @diag.run == Gtk::ResponseType::OK
+      #  res = "ok"
+      #end
+      #@diag.destroy
+      @diag.show_all
 
-    vbox.pack_start(image, expand: false, fill: false, padding: 0)
-    vbox.pack_start(title, expand: false, fill: false, padding: 0)
-    @diag.content_area.pack_start(vbox)
-  end
+      return res
+    end
 
-  def apply_styles
-    # Turn off decorations
-    @diag.decorated = false
+    def add_content
+      hbox = Gtk::Box.new(:horizontal, 2)
+      title = Gtk::Label.new(@title)
+      title.style_context.add_class('subtitle-label')
+      image = Gtk::Image.new(pixbuf: Gas.image)
 
-    # Add appropriate css classes to dialog buttons
-    set_classes = -> (x) {
-      if x.is_a?(Gtk::Button)
-        ctx = x.style_context
-        ctx.add_class('button-ok') if x.label == "_OK"
-        ctx.add_class('button-cancel') if x.label == "_Cancel"
-      end
-      return unless x.respond_to?(:children)
-      x.children.each{|y| set_classes.call(y)}
-    }
-    set_classes.call(@diag)
+      entry = Gtk::Entry.new
 
-    # Apply styles from css
-    Gas.apply_styles(@diag)
-  end
+      hbox.pack_start(image, expand: false, fill: false, padding: 0)
+      hbox.pack_start(title, expand: false, fill: false, padding: 0)
+      @diag.content_area.pack_start(hbox)
+      @diag.content_area.pack_start(entry)
+    end
 
-  def connect_signals
-    @diag.signal_connect('key_press_event'){|w,e|
-      if e.keyval == Gdk::Keyval::KEY_Return
-        @diag.signal_emit(:response, Gtk::ResponseType::OK)
-      end
-    }
+    def apply_styles
+      # Turn off decorations
+      @diag.decorated = false
+
+      # Add appropriate css classes to dialog buttons
+      set_classes = -> (x) {
+        if x.is_a?(Gtk::Button)
+          ctx = x.style_context
+          ctx.add_class('button-ok') if x.label == "_OK"
+          ctx.add_class('button-cancel') if x.label == "_Cancel"
+        end
+        return unless x.respond_to?(:children)
+        x.children.each{|y| set_classes.call(y)}
+      }
+      set_classes.call(@diag)
+
+      # Apply styles from css
+      Gas.apply_styles(@diag)
+    end
+
+    def connect_signals
+      @diag.signal_connect('key_press_event'){|w,e|
+        if e.keyval == Gdk::Keyval::KEY_Return
+          @diag.signal_emit(:response, Gtk::ResponseType::OK)
+        end
+      }
+    end
   end
 end

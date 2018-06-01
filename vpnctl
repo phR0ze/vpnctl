@@ -58,7 +58,6 @@ class VpnCtl
 #    @targeted_icon = File.join(@icon_path, 'vpnctl-targeted.png')
 #    @disabled_icon  = File.join(@icon_path, 'vpnctl-disabled.png')
 
-
     # Track VPN state
     @vpn = nil    # active vpn
     @vpns = Config.vpns
@@ -256,7 +255,7 @@ class VpnCtl
     if @vpn.state == Model::State.active
       pass = @vpn.login.pass if @vpn.login.type == Model::PassTypes.save
       if @vpn.login.type == Model::PassTypes.ask
-        pass = Prompt.new("Enter Password").run
+        pass = Gas::Prompt.new("Enter Password").run
       end
       puts(pass)
       self.select_styling(Model::State.connected)
