@@ -208,3 +208,15 @@ target-mode, a blue version when running in target mode and a red version when d
 * ***Settings***
 * ***Logs***
 * ***Quit***
+
+### Git-Hook Version Increment <a name="git-hook-version-increment"/></a>
+Enable the githooks to have automatic version increments
+
+```bash
+cd ~/Projects/vpnctl
+git config core.hooksPath .githooks
+```
+
+<!-- 
+vim: ts=2:sw=2:sts=2
+-->
