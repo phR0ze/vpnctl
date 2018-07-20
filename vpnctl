@@ -117,8 +117,10 @@ class VpnCtl
   def select_default_or_first_vpn
     if vpn = @vpns.find{|x| x.default}
       self.select_vpn(vpn.name)
+    elsif @vpns.any?
+      self.select_vpn(@vpns.first.name)
     else
-      self.select_vpn(@vpns.first.name) if @vpns.any?
+      self.select_vpn(nil, reset:true)
     end
   end
 
@@ -142,19 +144,20 @@ class VpnCtl
 
   # Select the given vpn from the list and populate ui
   # @param name [String] name of the vpn to select
-  def select_vpn(name)
-    @vpn = @vpns.find{|x| x.name == name}
-    @vpn_name.text = @vpn.name
-    @vpn_ovpn.active = @ovpns.index{|x| x == @vpn.ovpn} || -1
+  # @param reset [Bool] true then reset the vpn ui
+  def select_vpn(name, reset:false)
+    @vpn = reset ? nil : @vpns.find{|x| x.name == name}
+    @vpn_name.text = reset ? "" : @vpn.name
+    @vpn_ovpn.active = reset ? -1 : @ovpns.index{|x| x == @vpn.ovpn} || -1
     @vpn_ovpn_entry.text = '' if @vpn_ovpn.active == -1
-    @vpn_logintype.active = @vpn.login.type == Model::PassTypes.ask ? 0 : 1
-    @vpn_user.text = @vpn.login.user || ""
-    activate_pass_entry if @vpn.login.type == Model::PassTypes.save
-    deactivate_pass_entry if @vpn.login.type != Model::PassTypes.save
-    @vpn_routes.text = @vpn.routes * ","
-    @vpn_apps_sw.active = @vpn.target
-    @vpn_apps.buffer.text = @vpn.apps * "\n"
-    @vpn_default.active = @vpn.default
+    @vpn_logintype.active = reset ? 0 : @vpn.login.type == Model::PassTypes.ask ? 0 : 1
+    @vpn_user.text = reset ? "" : @vpn.login.user || ""
+    activate_pass_entry if !reset && @vpn.login.type == Model::PassTypes.save
+    deactivate_pass_entry if !reset && @vpn.login.type != Model::PassTypes.save
+    @vpn_routes.text = reset ? "" : @vpn.routes * ","
+    @vpn_apps_sw.active = reset ? false : @vpn.target
+    @vpn_apps.buffer.text = reset ? "" : @vpn.apps * "\n"
+    @vpn_default.active = reset ? true : @vpn.default
     self.select_styling(Model::State.active)
   end
 
@@ -221,16 +224,18 @@ class VpnCtl
   # Remove the currently selected vpn
   def del_vpn
     return unless @vpn
-    @vps.delete(@vpn)
+    @vpns.delete(@vpn)
     @vpnlist_box.remove(@vpn.btn)
     Config.del_vpn(@vpn.name)
     @vpn = nil
     self.select_default_or_first_vpn
+    Config.save
   end
 
   # Save the active vpn
   def save_vpn
-    return unless @vpn
+    self.add_vpn unless @vpn
+
     @vpn.name = @vpn_name.text
     @vpn.login.type = @vpn_logintype.active == 0 ? Model::PassTypes.ask : Model::PassTypes.save
     @vpn.login.user = @vpn_user.text
