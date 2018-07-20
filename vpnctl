@@ -62,6 +62,7 @@ class VpnCtl
     @vpn = nil    # active vpn
     @vpns = Config.vpns
     @ovpns = Dir[File.join(Config.ovpn_path, '*')]
+      .reject{|x| ['.pem', '.crt'].any?{|y| x.end_with?(y)}}.sort
 
 #    # VPN thread communication
 #    @halt = false
