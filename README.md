@@ -1,12 +1,31 @@
 # vpnctl
-Simple GUI wrapper for openvpn automation
+<img align="left" width="48" height="48" src="https://raw.githubusercontent.com/phR0ze/vpnctl/master/images/72x72/vpnctl.png">
+<b><i>vpnctl</i></b> was designed to provide some simple openvpn automation for split DNS,
+additional routing and simple network namespace isolation for targeted applications available as a
+CLI or system tray app.
 
 [![Build Status](https://travis-ci.org/phR0ze/vpnctl.svg)](https://travis-ci.org/phR0ze/vpnctl?branch=master)
 [![Coverage Status](https://coveralls.io/repos/github/phR0ze/vpnctl/badge.svg?branch=master)](https://coveralls.io/github/phR0ze/vpnctl?branch=master)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
+### Disclaimer
+***vpnctl*** comes with absolutely no guarantees or support of any kind. It is to be used at
+your own risk.  Any damages, issues, losses or problems caused by the use of ***vpnctl*** are
+strictly the responsiblity of the user and not the developer/creator of ***vpnctl***.
+
+### Current State
+***vpnctl*** is currently in development and hasn't even reached beta yet. That said I've tested a
+few areas fairly well and will list out what is currently working.
+
+* CLI with ***additional routing*** but not including ***targeted*** apps
+
 ### Table of Contents
+* [Overview](#overview)
+    * [Additional Routing](#additional-routing)
+    * [Network Namespace Isolation](#network-namespace-isolation)
 * [Install](#install)
+    * [cyberlinux](#cyberlinux)
+    * [Manual Install](#manual-install)
 * [Configure](#configure)
     * [Config file](#config-file)
 * [VpnCtl Guides](#vpnctl-guide)
@@ -14,6 +33,34 @@ Simple GUI wrapper for openvpn automation
     * [GUI Guide](#gui-guide)
 * [Development](#development)
     * [GTK+](#gtk)
+
+## Overview <a name="overview"></a>
+
+### Additional Routing <a name="Additional Routing"></a>
+Many corporate environments provide VPNs for their employees to connect into the corporate network
+remotely.  This is a convenient service and corporate IT will typically have a VPN app that you can
+use for Windows or Mac to connect.  Typically however these apps are extremely simplistic with
+little ability for sophistocated configurations which isn't a big deal for management, secretaries
+or non-dev types. Developers frequently will need Linux and to add additional routes for private
+networks.  ***vpnctl*** provides a simple mechanism to add additional routes to your VPN connection
+to forward private IPs in 10.x.x.x or 172.x.x.x or anything through the VPN with a simple list of
+desired subnets.
+
+### Network Namespace Isolation <a name="Network Namespace Isolation"></a>
+Network namespaces have been available in the Linux Kernel for some time and are regularly used in
+projects like ***docker*** and ***kubernetes*** etc... for isolating container applications. However
+this same technology can be used to create network namespaces on a host system so that any
+application launched within the network namespace is in its own isolated network and unable to
+connect to other parts of the host network unless specifically allowed.  This allows for things like
+isolating a particular application to always run over a VPN with zero possibility of leakage if the
+VPN goes down.  This can all be done by hand but is complicated and error prone if you don't know
+what your doing.  ***vpnctl*** harnesses the power of network namespaces to isolated apps as desired
+in a clean automated fashion.
+
+## Install <a name="install"></a>
+I'm developing this because there doesn't seem to be any simply vpn management apps out there that provide isolated network namespaces for targeted apps. for my distro ***cyberlinux***
+
+## cyberlinux <a name="cyberlinux"></a>
 
 ## Install <a name="install"></a>
 ```bash
