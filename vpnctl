@@ -153,7 +153,7 @@ class VpnCtl
     @vpn_logintype.active = reset ? 0 : @vpn.login.type == Model::PassTypes.ask ? 0 : 1
     @vpn_user.text = reset ? "" : @vpn.login.user || ""
     activate_pass_entry if !reset && @vpn.login.type == Model::PassTypes.save
-    deactivate_pass_entry if !reset && @vpn.login.type != Model::PassTypes.save
+    deactivate_pass_entry if reset || @vpn.login.type != Model::PassTypes.save
     @vpn_routes.text = reset ? "" : @vpn.routes * ","
     @vpn_apps_sw.active = reset ? false : @vpn.target
     @vpn_apps.buffer.text = reset ? "" : @vpn.apps * "\n"
@@ -204,14 +204,18 @@ class VpnCtl
   end
 
   # Add a new vpn button and select it
-  def add_vpn
+  # @param vpn [Model::Vpn] vpn to add if given
+  def add_vpn(vpn:nil)
+
     # Ensure the vpn has a unique name
-    name = "New VPN"
-    i = (0..10).find{|i| !@vpns.any?{|x| x.name == "#{name} #{i}"}}
-    name = "#{name} #{i}"
+    name = vpn ? vpn.name : "New VPN"
+    if vpn
+      i = (0..10).find{|i| !@vpns.any?{|x| x.name == "#{name} #{i}"}}
+      name = "#{name} #{i}"
+    end
 
     # Create the vpn and select it
-    vpn = Config.add_vpn(name)
+    vpn = Config.add_vpn(name).clone(vpn)
     vpn.btn = Gtk::Button.new(label:name)
     @vpnlist_box.pack_start(vpn.btn)
     vpn.btn.signal_connect('clicked'){|x| self.select_vpn(x.label)}
@@ -234,19 +238,18 @@ class VpnCtl
 
   # Save the active vpn
   def save_vpn
-    self.add_vpn unless @vpn
 
-    @vpn.name = @vpn_name.text
-    @vpn.login.type = @vpn_logintype.active == 0 ? Model::PassTypes.ask : Model::PassTypes.save
-    @vpn.login.user = @vpn_user.text
+    # Capture current state as a new vpn
+    type = @vpn_logintype.active == 0 ? Model::PassTypes.ask : Model::PassTypes.save
+    vpn = Model::Vpn.new(@vpn_name.text, Model::Login.new(type, @vpn_user.text, @vpn_pass.text),
+      @vpn_routes.text.split(','), File.join(Config.ovpn_path, @vpn_ovpn.active_text),
+      '', @vpn_apps_sw.active?, @vpn_apps.buffer.text.split("\n"), @vpn_default.active?)
 
-    @vpn.login.pass = @vpn_pass.text
-    @vpn.routes = @vpn_routes.text.split(',')
-    @vpn.ovpn = File.join(Config.ovpn_path, @vpn_ovpn.active_text)
-    @vpn.target = @vpn_apps_sw.active?
-    @vpn.apps = @vpn_apps.buffer.text.split("\n")
-    @vpn.default = @vpn_default.active?
-    Config.update_vpn(@vpn)
+    # Add the vpn as a new entry and select
+    self.add_vpn(vpn:vpn) unless @vpn
+
+    # Update and save the vpn
+    Config.update_vpn(@vpn.clone(vpn))
 
     # Update the button label after as its used as itentifier first
     @vpn.btn.label = @vpn.name

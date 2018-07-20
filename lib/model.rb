@@ -68,5 +68,18 @@ module Model
   # @param default [Bool] True if default vpn
   # @param state [String] state of the vpn
   # @param btn [GtkButton] associated button
-  Vpn = Struct.new(:name, :login, :routes, :ovpn, :auth, :target, :apps, :default, :state, :btn)
+  Vpn = Struct.new(:name, :login, :routes, :ovpn, :auth, :target, :apps, :default, :state, :btn) do
+    def clone(vpn)
+      self.name = vpn.name
+      self.login.type = vpn.login.type
+      self.login.user = vpn.login.user
+      self.login.pass = vpn.login.pass
+      self.routes = vpn.routes
+      self.ovpn = vpn.ovpn
+      self.target = vpn.target
+      self.apps = vpn.apps
+      self.default = vpn.default
+      return self
+    end
+  end
 end
