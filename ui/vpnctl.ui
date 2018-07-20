@@ -527,7 +527,7 @@
                               <object class="GtkEntry" id="vpn-routes-entry">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="placeholder_text" translatable="yes">e.g. 10.33.0.0./16</property>
+                                <property name="placeholder_text" translatable="yes">e.g. 10.33.0.0/16</property>
                                 <style>
                                   <class name="vpn-content-entry"/>
                                 </style>
