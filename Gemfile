@@ -20,8 +20,6 @@
 #SOFTWARE.
 
 source 'https://rubygems.org'
-
-# Specify gem dependencies in the gemspec so RubyGems picks them up for the gems repo
 gemspec
 
 # vim: ft=ruby:ts=2:sw=2:sts=2

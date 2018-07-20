@@ -24,6 +24,7 @@ $root_path = File.dirname(File.expand_path(__FILE__))
 $root_path = '/usr/share/vpnctl' if $root_path == '/usr/bin'
 $LOAD_PATH.unshift($root_path)
 
+require 'time'                  # Time date functions
 require 'open3'                 # Better system commands
 require 'socket'                # Networking support
 require 'colorize'              # Color output
@@ -51,7 +52,7 @@ class VpnCtlCli
 
       while !halt do
         begin
-          # Write out the auth file for OpenVPN to read
+          # (1) Main thread: Write out the auth file for OpenVPN to read
           File.open(@config.auth, "w", 0600){|f|
             f.puts(@config.login.user)
             f.puts(@config.login.pass)
@@ -78,11 +79,14 @@ class VpnCtlCli
               if msg = Model::FailMessages.find{|x| line.include?(x)}
                 comm_in << ThreadMsg.new(Model::CommCmd.fail, msg)
               end
+
+              # Trim out OVPN timestamps e.g. Fri Jul 20 07:14:55 2018
+              line = line[line.index(Time.now.year.to_s)+5..-1] if line.include?(Time.now.year.to_s)
               Log.info("#{'OVPN:'.colorize(:yellow)} #{line.strip}")
             end
           }
 
-          # Manage thread communication and actions
+          # (1) Main thread: Manage thread communication and actions
           vpn_started = false
           while true do
             if !comm_in.empty?
@@ -188,7 +192,7 @@ end
 if __FILE__ == $0
   app = 'vpnctl-cli'
   version = '0.0.1'
-  examples = "Start VPN: sudo ./#{app} start ospra\n".colorize(:green)
+  examples = "Start VPN: sudo ./#{app} start NordVPN\n".colorize(:green)
   cmdr = Commander.new(app:app, version:version, examples:examples)
   cmdr.add('start', 'Start VPN service', nodes:[
     Option.new(nil, 'VPN name to lookup in config')
