@@ -79,7 +79,7 @@ module Gas
       Gtk.main_quit if e.keyval == Gdk::Keyval::KEY_Escape
     }
 
-    # Default centering on window doesn't work in Gtk+
+    # Set default/saved position for window
     # Turns out that Gtk+ doesn't know what the size of a window is until it has
     # been realized (i.e. painted on the screen) so we have to setup a signal to
     # manually do this for Gtk once the allocation values have been set
@@ -110,25 +110,28 @@ module Gas
     win = Gas.main if !win
 
     # Get parent dimensions and position
-    parent_w = win.screen.width if win == Gas.main
-    parent_h = win.screen.height if win == Gas.main
-    parent_x = 0 if win == Gas.main
-    parent_y = 0 if win == Gas.main
-
-    # Get child dimensions and position
-    child_w, child_h = win.size
-    curr_x, curr_y = win.position
+    if win == Gas.main
+      parent_x, parent_y = 0
+      parent_w = win.screen.width
+      parent_h = win.screen.height
+    else
+      parent = win.parent || Gas.main
+      parent_w, parent_h = parent.size
+      parent_x, parent_y = parent.position
+    end
 
     # Default to center if no position is given
-    new_x, new_y = nil
+    child_w, child_h = win.size
     if position
-      new_x = parent_x
-      new_y = parent_y
+      puts("position: #{position}")
+      new_x = parent_x + position.first
+      new_y = parent_y + position.last
     else
       new_x = parent_w/2 - child_w/2
       new_y = parent_h/2 - child_h/2
     end
 
+    puts("move: #{new_x}, #{new_y}")
     win.move(new_x, new_y)
   end
 
@@ -173,8 +176,9 @@ module Gas
     # @param title [String] title of the prompt dialog
     # @param parent [Gtk::Widget] parent widget
     def initialize(title, parent:nil)
-      @parent = parent || Gas.main
       @title = title
+      @parent = parent || Gas.main
+      @positioned = false
 
       @diag = Gtk::Dialog.new(parent:@parent, flags:[:modal, :destroy_with_parent],
         buttons:[["_OK", :ok], ["_Cancel", :cancel]])
@@ -182,6 +186,15 @@ module Gas
 
       self.add_content
       self.apply_styles
+
+      # Set default position for dialog
+      # TODO: doesn't seem to work guess you can't move dialogs
+      @diag.signal_connect('size-allocate'){
+        if !@positioned
+          Gas.reposition_on_parent(@diag, [100, 100])
+          @positioned = true
+        end
+      }
     end
 
     # Returns the entered string
