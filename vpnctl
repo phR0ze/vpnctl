@@ -40,8 +40,9 @@ begin
   require 'lib/config'
   require 'lib/gtkassist'
 rescue Exception => e
-  mod = e.message.split(' ').last.sub('/', '-')
-  !puts("Error: install missing package with 'sudo package -S ruby-#{mod}'") and exit
+  puts(e.message)
+  #mod = e.message.split(' ').last.sub('/', '-')
+  #!puts("Error: install missing package with 'sudo package -S ruby-#{mod}'") and exit
 end
 
 class VpnCtl
@@ -49,7 +50,7 @@ class VpnCtl
 #    #!puts("Error: must be executed as root user".colorize(:red)) and exit unless Process.uid.zero?
     @datapath = File.dirname(File.expand_path(__FILE__))
     @datapath = '/usr/share/vpnctl' if File.basename(@datapath) != 'vpnctl'
-    Gas.init('vpnctl.ui', @datapath, "32x32/vpnctl.png", "48x48/vpnctl.png")
+    Gas.init('vpnctl.ui', @datapath, "32x32/vpnctl.png", "48x48/vpnctl.png", nil)
 
     Config.init('vpnctl.yml')
     Log.init(path:"#{$root_path}/vpnctl.log", queue:true, stdout:true)
@@ -59,7 +60,7 @@ class VpnCtl
 #    @disabled_icon  = File.join(@icon_path, 'vpnctl-disabled.png')
 
     # Track VPN state
-    @vpn = nil    # active vpn
+    @vpn = nil
     @vpns = Config.vpns
     @ovpns = Dir[File.join(Config.ovpn_path, '*')]
       .reject{|x| ['.pem', '.crt'].any?{|y| x.end_with?(y)}}.sort
@@ -110,7 +111,7 @@ class VpnCtl
     }
     self.select_default_or_first_vpn
 
-    Gas.apply_styles(Gas.main)
+    Gas.apply_styles
   end
 
   # Select the default or first vpn if doesn't exist
@@ -238,8 +239,6 @@ class VpnCtl
 
   # Save the active vpn
   def save_vpn
-
-    # Capture current state as a new vpn
     type = @vpn_logintype.active == 0 ? Model::PassTypes.ask : Model::PassTypes.save
     vpn = Model::Vpn.new(@vpn_name.text, Model::Login.new(type, @vpn_user.text, @vpn_pass.text),
       @vpn_routes.text.split(','), File.join(Config.ovpn_path, @vpn_ovpn.active_text),
@@ -411,83 +410,6 @@ class VpnCtl
 #    return logwin, @logview, @logiter
 #  end
 #
-#  # Create the settings window
-#  # @returns [Gtk::Window] the settings window to work with
-#  def create_settings_window
-#    settings = As.builder.get_object("settings")
-#    settings.title = "OpenVPN PIA - Settings"
-#    settings.icon = GdkPixbuf::Pixbuf.new(file:@icon)
-#
-#    # Add all vpn gateways to the menu
-##    @openvpn_configs.each{|x|
-##      gateway = File.basename(x, '.ovpn')
-##      item = Gtk::ImageMenuItem.new(gateway)
-##
-##      # Determine correct flag to use for the given gateway
-##      flag = @flags.find{|x| x if gateway.start_with?(File.basename(x, '.png')[/flag-(.*)/, 1])}
-##      item.image = Gtk::Image.new(GdkPixbuf::Pixbuf.new(file:flag, width:16, height:16)) if flag
-##      menu.append(item)
-##    }
-#
-#    # Populate the combo box
-#    region_combo = As.builder.get_object("region_combo")
-#    @openvpn_configs.each{|x|
-#      gateway = File.basename(x, '.ovpn')
-#      region_combo.append_text(gateway)
-#    }
-#    region_combo.set_active(0)
-#
-#    # Read in and set settings
-#    username_entry = As.builder.get_object("username_entry")
-#    password_entry = As.builder.get_object("password_entry")
-#    target_entry = As.builder.get_object("target_entry")
-#    if File.exist?(@config)
-#      File.open(@config, 'r'){|f|
-#        lines = f.readlines
-#        username_entry.text = lines[0].strip if lines.any?
-#        password_entry.text = lines[1].strip if lines.size > 1
-#        if lines.size > 2
-#          index = @openvpn_configs.index{|x| x == lines[2].strip}
-#          region_combo.set_active(index)
-#        end
-#        target_entry.text = lines[3].strip if lines.size > 3
-#      }
-#    end
-#
-#    # Hide settings window
-#    cancel_btn = As.builder.get_object("cancel_btn")
-#    settings.signal_connect('delete-event'){|widget, event|
-#      widget.hide_on_delete
-#    }
-#    cancel_btn.signal_connect('clicked'){
-#      settings.visible = false
-#    }
-#    settings.signal_connect('key_press_event'){|widget, event|
-#      settings.visible = false if event.keyval == Gdk::Keyval::KEY_Escape
-#    }
-#
-#    # Save out settings
-#    save_btn = As.builder.get_object("save_btn")
-#    save_btn.signal_connect('clicked'){
-#      File.open(@config, 'w'){|f|
-#        f.puts(username_entry.text)
-#        f.puts(password_entry.text)
-#        if region_combo.active > -1
-#          f.puts(@openvpn_configs[region_combo.active])
-#        else
-#          f.puts("")
-#        end
-#        f.puts(target_entry.text)
-#      }
-#      File.chmod(0600, @config)
-#      settings.visible = false
-#    }
-#
-#    return settings
-#  end
-#
-#  # Start and manage the vpn
-#  # @param target_mode [Boolean] true then run in target mode
 #  def start_and_manage_vpn(target_mode)
 #    return if !@vpn_comm_in.nil?
 #    @vpn_comm_in = Queue.new

@@ -1,7 +1,7 @@
 # vpnctl
 <img align="left" width="48" height="48" src="https://raw.githubusercontent.com/phR0ze/vpnctl/master/images/72x72/vpnctl.png">
-<b><i>vpnctl</i></b> was designed to provide some simple openvpn automation for split DNS,
-additional routing and simple network namespace isolation for targeted applications available as a
+<b><i>vpnctl</i></b> was designed to provide automation for openvpn advanced features like split DNS,
+additional routing and network namespace isolation for targeted applications available as a
 CLI or system tray app.<br><br>
 
 [![Build Status](https://travis-ci.org/phR0ze/vpnctl.svg)](https://travis-ci.org/phR0ze/vpnctl?branch=master)

@@ -39,14 +39,16 @@ module Gas
   mattr_accessor(:cursor_grabbing)
 
   # Window positioning
-  mattr_accessor(:reposition)
+  mattr_accessor(:reposition)   # array for tracking repositioning of window
+  mattr_accessor(:positioned)   # flag to indicate if initial position has been set
 
   # Load paths and styles
-  # @param uifile [String] ui file to load
-  # @param datapath [String] path to styles to load
-  # @param icon [String] image relative path to icon
-  # @param image [String] image relative path to larger image
-  def init(uifile, datapath, icon, image)
+  # @param uifile [String] file to load
+  # @param datapath [String] to load styles from
+  # @param icon [String] relative path
+  # @param image [String] relative path
+  # @param position [Array(x,y)] for window
+  def init(uifile, datapath, icon, image, position)
     self.datapath = datapath
     self.uipath = File.join(datapath, "ui")
     self.imagepath = File.join(datapath, "images")
@@ -76,27 +78,63 @@ module Gas
     self.main.signal_connect('key_press_event'){|w,e|
       Gtk.main_quit if e.keyval == Gdk::Keyval::KEY_Escape
     }
+
+    # Default centering on window doesn't work in Gtk+
+    # Turns out that Gtk+ doesn't know what the size of a window is until it has
+    # been realized (i.e. painted on the screen) so we have to setup a signal to
+    # manually do this for Gtk once the allocation values have been set
+    self.main.signal_connect('size-allocate'){
+      if !self.positioned
+        self.reposition_on_parent(position)
+        self.positioned = true
+      end
+    }
   end
 
   # Apply css for the widget and all children recursively
-  # @param widget [Gtk::Widget] widget to apply styles to
-  def apply_styles(widget)
+  # @param widget [Gtk::Widget] to apply styles to
+  def apply_styles(*widget)
+    widget = widget.first || Gas.main
+
     widget.style_context.add_provider(self.css, Gtk::StyleProvider::PRIORITY_USER)
     return unless widget.respond_to?(:children)
     widget.children.each{|x| apply_styles(x)}
   end
 
-  def reposition_on_parent
-    #x, y = @main.position
-    #@pass_diag.move(x, y)
-    #pass = @pass_entry.text if @pass_diag.run == Gtk::ResponseType::OK
-    #@pass_entry.text = ""
-    #@pass_diag.hide
+  # Reposition the window in its parent
+  # @param win [GtkWindow] to reposition on its parent
+  # @param position [Array(x, y)] to set for child relative to parent
+  def reposition_on_parent(*args)
+    win = args.find{|x| !x.is_a?(Array)}
+    position = args.find{|x| x.is_a?(Array)}
+    win = Gas.main if !win
+
+    # Get parent dimensions and position
+    parent_w = win.screen.width if win == Gas.main
+    parent_h = win.screen.height if win == Gas.main
+    parent_x = 0 if win == Gas.main
+    parent_y = 0 if win == Gas.main
+
+    # Get child dimensions and position
+    child_w, child_h = win.size
+    curr_x, curr_y = win.position
+
+    # Default to center if no position is given
+    new_x, new_y = nil
+    if position
+      new_x = parent_x
+      new_y = parent_y
+    else
+      new_x = parent_w/2 - child_w/2
+      new_y = parent_h/2 - child_h/2
+    end
+
+    win.move(new_x, new_y)
   end
 
   # Setup window to be able to be repositioned
   # by clicking on non-child widget area to move with dragging
-  # @param win [GtkWindow] window to enable repositioning for
+  # @param win [GtkWindow] to enable repositioning for
   def enable_repositioning(win)
     self.reposition ||= {}
     id = win.object_id
@@ -174,6 +212,7 @@ module Gas
     end
 
     def apply_styles
+
       # Turn off decorations
       @diag.decorated = false
 
