@@ -47,7 +47,7 @@ end
 
 class VpnCtl
   def initialize
-#    #!puts("Error: must be executed as root user".colorize(:red)) and exit unless Process.uid.zero?
+    !puts("Error: must be executed as root user".colorize(:red)) and exit unless Process.uid.zero?
     @datapath = File.dirname(File.expand_path(__FILE__))
     @datapath = '/usr/share/vpnctl' if File.basename(@datapath) != 'vpnctl'
     Gas.init('vpnctl.ui', @datapath, "32x32/vpnctl.png", "48x48/vpnctl.png", nil)
@@ -265,7 +265,7 @@ class VpnCtl
       if @vpn.login.type == Model::PassTypes.ask
         pass = Gas::Prompt.new("Enter Password").run
       end
-      puts(pass)
+      self.connect(pass)
       self.select_styling(Model::State.connected)
 
     # Disconnect the current connected vpn
@@ -273,6 +273,26 @@ class VpnCtl
       puts("VPN: #{@vpn.name} - disconnecting")
       self.select_styling(Model::State.active, force:true)
     end
+  end
+
+  # Connect to the active vpn
+  # @param pass [String] to use when connecting
+  def connect(pass)
+    @vpn_thread = Thread.new{
+      begin
+        vpn = VpnCtlCli.new(@vpn.name)
+        vpn.config.login.pass = pass
+        vpn_thread = vpn.start
+        Log.info("MGMT: Waiting for VPN to halt".colorize(:magenta))
+        vpn_thread.join
+      rescue Interrupt
+        Log.puts(stamp:false)
+        Log.info("MGMT: Halting VPN".colorize(:magenta))
+        vpn_thread.push(Model::CommCmd.halt)
+        vpn_thread.pop
+        Log.info("MGMT: VPN Halted".colorize(:magenta))
+      end
+    }
   end
 
   # Configure signals
