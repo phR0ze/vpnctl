@@ -123,7 +123,6 @@ module Gas
     # Default to center if no position is given
     child_w, child_h = win.size
     if position
-      puts("position: #{position}")
       new_x = parent_x + position.first
       new_y = parent_y + position.last
     else
@@ -131,7 +130,6 @@ module Gas
       new_y = parent_h/2 - child_h/2
     end
 
-    puts("move: #{new_x}, #{new_y}")
     win.move(new_x, new_y)
   end
 
@@ -178,34 +176,26 @@ module Gas
     def initialize(title, parent:nil)
       @title = title
       @parent = parent || Gas.main
-      @positioned = false
 
+      @entry = nil
+      @positioned = false
       @diag = Gtk::Dialog.new(parent:@parent, flags:[:modal, :destroy_with_parent],
         buttons:[["_OK", :ok], ["_Cancel", :cancel]])
       @diag.set_default_response(Gtk::ResponseType::CANCEL)
 
       self.add_content
       self.apply_styles
-
-      # Set default position for dialog
-      # TODO: doesn't seem to work guess you can't move dialogs
-      @diag.signal_connect('size-allocate'){
-        if !@positioned
-          Gas.reposition_on_parent(@diag, [100, 100])
-          @positioned = true
-        end
-      }
     end
 
     # Returns the entered string
     def run
       res = nil
-
-      #if @diag.run == Gtk::ResponseType::OK
-      #  res = "ok"
-      #end
-      #@diag.destroy
       @diag.show_all
+
+      if @diag.run == Gtk::ResponseType::OK
+        res = @entry.text
+      end
+      @diag.destroy
 
       return res
     end
@@ -216,12 +206,13 @@ module Gas
       title.style_context.add_class('subtitle-label')
       image = Gtk::Image.new(pixbuf: Gas.image)
 
-      entry = Gtk::Entry.new
+      @entry = Gtk::Entry.new
+      @entry.visibility = false
 
       hbox.pack_start(image, expand: false, fill: false, padding: 0)
       hbox.pack_start(title, expand: false, fill: false, padding: 0)
       @diag.content_area.pack_start(hbox)
-      @diag.content_area.pack_start(entry)
+      @diag.content_area.pack_start(@entry)
     end
 
     def apply_styles
