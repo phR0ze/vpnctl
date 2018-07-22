@@ -1,6 +1,6 @@
 Gem::Specification.new do |spec|
   spec.name        = 'vpnctl'
-  spec.version     = '0.0.35'
+  spec.version     = '0.0.36'
   spec.summary     = "Simple GUI automation for openvpn"
   spec.authors     = ["Patrick Crummett"]
   spec.homepage    = 'https://github.com/phR0ze/vpnctl'

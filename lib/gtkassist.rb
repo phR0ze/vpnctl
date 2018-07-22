@@ -185,13 +185,14 @@ module Gas
 
       self.add_content
       self.apply_styles
+      self.connect_signals
     end
 
     # Returns the entered string
     def run
       res = nil
-      @diag.show_all
 
+      @diag.show_all
       if @diag.run == Gtk::ResponseType::OK
         res = @entry.text
       end
