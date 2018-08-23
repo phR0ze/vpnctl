@@ -7,3 +7,6 @@
 *.log
 Gemfile.lock
 openvpn.yml
+aur/pkg
+aur/src
+aur/*.pkg.tar.xz
