@@ -191,7 +191,7 @@ end
 #-------------------------------------------------------------------------------
 if __FILE__ == $0
   app = 'vpnctl-cli'
-  version = '0.0.1'
+  version = FileUtils.version('vpnctl.gemspec', /\s*spec\.version\s*=.*(\d+\.\d+\.\d+).*/)
   examples = "Start VPN: sudo ./#{app} start NordVPN\n".colorize(:green)
   cmdr = Commander.new(app:app, version:version, examples:examples)
   cmdr.add('start', 'Start VPN service', nodes:[
