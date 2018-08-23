@@ -39,12 +39,12 @@ few areas fairly well and will list out what is currently working.
 ### Additional Routing <a name="Additional Routing"></a>
 Many corporate environments provide VPNs for their employees to connect into the corporate network
 remotely.  This is a convenient service and corporate IT will typically have a VPN app that you can
-use for Windows or Mac to connect.  Typically however these apps are extremely simplistic with
-little ability for sophistocated configurations which isn't a big deal for management, secretaries
-or non-dev types. Developers frequently will need Linux and to add additional routes for private
-networks.  ***vpnctl*** provides a simple mechanism to add additional routes to your VPN connection
-to forward private IPs in 10.x.x.x or 172.x.x.x or anything through the VPN with a simple list of
-desired subnets.
+use for Windows or Mac to connect but not Linux.  Additionally the provided vpn apps are extremely
+simplistic with little ability for configuration which isn't a big deal for management, secretarial
+or non-dev types. Developers however need Linux support and often sophisticated routing for private
+networks.  ***vpnctl*** fills this gap by providing additional routing configuration for your VPN
+connection to forward private IPs in 10.x.x.x or 172.x.x.x or anything through the VPN with a simple
+list of desired subnets.
 
 ### Network Namespace Isolation <a name="Network Namespace Isolation"></a>
 Network namespaces have been available in the Linux Kernel for some time and are regularly used in
@@ -54,13 +54,8 @@ application launched within the network namespace is in its own isolated network
 connect to other parts of the host network unless specifically allowed.  This allows for things like
 isolating a particular application to always run over a VPN with zero possibility of leakage if the
 VPN goes down.  This can all be done by hand but is complicated and error prone if you don't know
-what your doing.  ***vpnctl*** harnesses the power of network namespaces to isolated apps as desired
+what your doing.  ***vpnctl*** harnesses the power of network namespaces to isolate apps as desired
 in a clean automated fashion.
-
-## Install <a name="install"></a>
-I'm developing this because there doesn't seem to be any simply vpn management apps out there that provide isolated network namespaces for targeted apps. for my distro ***cyberlinux***
-
-## cyberlinux <a name="cyberlinux"></a>
 
 ## Install <a name="install"></a>
 ```bash
