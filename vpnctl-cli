@@ -192,16 +192,29 @@ end
 if __FILE__ == $0
   app = 'vpnctl-cli'
   version = FileUtils.version('vpnctl.gemspec', /\s*spec\.version\s*=.*(\d+\.\d+\.\d+).*/)
-  examples = "Start VPN: sudo ./#{app} start NordVPN\n".colorize(:green)
+  examples = "List VPNs: sudo ./#{app} list\n".colorize(:green)
+  examples += "Start VPN: sudo ./#{app} start NordVPN\n".colorize(:green)
   cmdr = Commander.new(app:app, version:version, examples:examples)
+
+  # List VPNs
+  #-----------------------------------------------------------------------------
+  cmdr.add('list', 'List configured VPNs',
+    examples: "List VPNs: sudo ./#{app} list\n")
+
+  # Start VPNs
+  #-----------------------------------------------------------------------------
   cmdr.add('start', 'Start VPN service', nodes:[
     Option.new(nil, 'VPN name to lookup in config')
-  ])
-  cmdr.parse!
+  ], examples: "Start VPN: sudo ./#{app} start NordVPN\n")
 
-  # Start the VPN
+  cmdr.parse!
   Config.init('vpnctl.yml')
-  if cmdr[:start]
+
+  if cmdr[:list]
+    Config.vpns.each{|x|
+      puts("Name: #{x.name.colorize(:cyan)}, Login type: #{x.login.type}, Config: #{x.ovpn}")
+    }
+  elsif cmdr[:start]
     begin
       vpn = VpnCtlCli.new(cmdr[:start][:start0])
       if vpn.config.login.type == Model::PassTypes.ask
