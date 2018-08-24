@@ -19,7 +19,7 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 
-require 'ostruct'               # OpenStruct
+require 'ostruct'
 
 module Model
   FailMessages = [
@@ -55,7 +55,20 @@ module Model
   # @param type [String] PassTypes string
   # @param user [String] name of the user
   # @param pass [String] password for the user
-  Login = Struct.new(:type, :user, :pass)
+  Login = Struct.new(:type, :user, :pass) do
+    def clone(*args)
+      if args.any? && args.first.is_a?(Login)
+        self.type = args.first.type
+        self.user = args.first.user
+        self.pass = args.first.pass
+        self
+      elsif !args.any?
+        Login.new(self.type, self.user, self.pass)
+      else
+        Login.new
+      end
+    end
+  end
 
   # VPN model object
   # @param name [String] name of the vpn
@@ -69,17 +82,24 @@ module Model
   # @param state [String] state of the vpn
   # @param btn [GtkButton] associated button
   Vpn = Struct.new(:name, :login, :routes, :ovpn, :auth, :target, :apps, :default, :state, :btn) do
-    def clone(vpn)
-      self.name = vpn.name
-      self.login.type = vpn.login.type
-      self.login.user = vpn.login.user
-      self.login.pass = vpn.login.pass
-      self.routes = vpn.routes
-      self.ovpn = vpn.ovpn
-      self.target = vpn.target
-      self.apps = vpn.apps
-      self.default = vpn.default
-      return self
+    def clone(*args)
+      if args.any? && args.first.is_a?(Vpn)
+        self.name = args.first.name
+        self.login = Login.new.clone(args.first.login)
+        self.routes = Marshal.load(Marshal.dump(args.first.routes))
+        self.ovpn = args.first.ovpn
+        self.auth = args.first.auth
+        self.target = args.first.target
+        self.apps = Marshal.load(Marshal.dump(args.first.apps))
+        self.default = args.first.default
+        self.state = args.first.state
+        self
+      elsif !args.any?
+        Vpn.new(self.name, self.login.clone, Marshal.load(Marshal.dump(self.routes)), self.ovpn,
+          self.auth, self.target, Marshal.load(Marshal.dump(self.apps)), self.default, self.state)
+      else
+        Vpn.new
+      end
     end
   end
 end

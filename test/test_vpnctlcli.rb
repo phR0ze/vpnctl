@@ -23,7 +23,7 @@
 require 'yaml'
 require 'minitest/autorun'
 
-mod = File.join(File.dirname(File.expand_path(__FILE__)), '../openvpn-cli')
+mod = File.join(File.dirname(File.expand_path(__FILE__)), '../vpnctl-cli')
 load mod
 
 class Test_VpnCtlCli < Minitest::Test
