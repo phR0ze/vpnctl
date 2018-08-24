@@ -62,7 +62,7 @@ module Model
         self.user = args.first.user
         self.pass = args.first.pass
         self
-      elsif !args.any?
+      elsif args.size == 0
         Login.new(self.type, self.user, self.pass)
       else
         Login.new
@@ -94,7 +94,7 @@ module Model
         self.default = args.first.default
         self.state = args.first.state
         self
-      elsif !args.any?
+      elsif args.size == 0
         Vpn.new(self.name, self.login.clone, Marshal.load(Marshal.dump(self.routes)), self.ovpn,
           self.auth, self.target, Marshal.load(Marshal.dump(self.apps)), self.default, self.state)
       else
