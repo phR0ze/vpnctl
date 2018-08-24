@@ -22,11 +22,12 @@
 
 require 'minitest/autorun'
 
-require_relative '../lib/model'
+require_relative '../lib/config'
 
 class Test_Config < Minitest::Test
 
   def test_ovpn_path
+    assert_equal("/etc/openvpn/client", Config.ovpn_path)
   end
 end
 

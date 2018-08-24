@@ -29,7 +29,6 @@ load mod
 class Test_VpnCtlCli < Minitest::Test
 
   def test_config
-    puts("test")
   end
 
 end

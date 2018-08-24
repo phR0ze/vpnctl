@@ -19,14 +19,17 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 
+require 'nub'
+
+# Monkey patch Config with specific functions for vpnctl
 module Config
   extend self
 
-  # Read in the ovpn path
+  # Read in the ovpn path from the general section of the config
   def ovpn_path
     default = '/etc/openvpn/client'
     yml = Config['general']
-    return yml ? (yml['ovpn_path'] ? yml['ovpn_path'] : default) : default
+    return yml ? yml['ovpn_path'] || default : default
   end
 
   # Get all vpns as vpn objects
