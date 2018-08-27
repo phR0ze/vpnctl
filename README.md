@@ -5,7 +5,7 @@ additional routing and network namespace isolation for targeted applications ava
 CLI or system tray app.<br><br>
 
 [![Build Status](https://travis-ci.org/phR0ze/vpnctl.svg)](https://travis-ci.org/phR0ze/vpnctl?branch=master)
-[![Coverage Status](https://coveralls.io/repos/github/phR0ze/vpnctl/badge.svg?branch=master)](https://coveralls.io/github/phR0ze/vpnctl?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/phR0ze/vpnctl/badge.svg?branch=master&service=github)](https://coveralls.io/github/phR0ze/vpnctl?branch=master&service=github)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ### Disclaimer
