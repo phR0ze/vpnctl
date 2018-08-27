@@ -42,6 +42,7 @@ module Config
   # @param name [String] name of the vpn to use
   # @returns vpn [Vpn] struct containing the vpn properties
   def vpn(name)
+    Config['vpns'] = [] if !Config['vpns']
     vpn = Config['vpns'].find{|x| x['name'] == name }
     raise("couldn't find vpn '#{name}' in config") if !vpn
 
@@ -64,7 +65,7 @@ module Config
     # Load ovpn config
     ovpn = vpn['ovpn']
     valid = false if !ovpn
-    Log.warn("vpn missing login") if !ovpn
+    Log.warn("vpn missing ovpn") if !ovpn
     ovpn_auth_path = ovpn ? File.join(File.dirname(ovpn), "#{name}.auth") : nil
 
     # Load target apps
@@ -110,15 +111,18 @@ module Config
   # Update the given vpn in the config
   # @param vpn [VPN] vpn to update
   def update_vpn(vpn)
+    raise "incorrect vpn type" if !vpn.is_a?(Model::Vpn)
 
     # Ensure only one vpn is set as the default
     Config['vpns'].each{|x| x['default'] = false} if vpn.default
     
     raw = Config['vpns'].find{|x| x['name'] == vpn.btn.label}
     raw['name'] = vpn.name
-    raw['login']['type'] = vpn.login.type
-    raw['login']['user'] = vpn.login.user
-    raw['login']['pass'] = vpn.login.pass
+    if vpn.login
+      raw['login']['type'] = vpn.login.type
+      raw['login']['user'] = vpn.login.user
+      raw['login']['pass'] = vpn.login.pass
+    end
     raw['routes'] = vpn.routes
     raw['ovpn'] = vpn.ovpn
     raw['target'] = vpn.target
