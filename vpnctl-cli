@@ -20,9 +20,9 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 
-$root_path = File.dirname(File.expand_path(__FILE__))
-$root_path = '/usr/share/vpnctl' if $root_path == '/usr/bin'
-$LOAD_PATH.unshift($root_path)
+root_path = File.dirname(File.expand_path(__FILE__))
+root_path = '/usr/share/vpnctl' if root_path == '/usr/bin'
+$LOAD_PATH.unshift(root_path)
 
 require 'time'                  # Time date functions
 require 'open3'                 # Better system commands
@@ -189,7 +189,7 @@ end
 #-------------------------------------------------------------------------------
 # Main entry point
 #-------------------------------------------------------------------------------
-if __FILE__ == $0
+def vpnCtlCliMain
   app = 'vpnctl-cli'
   version = FileUtils.version('vpnctl.gemspec', /\s*spec\.version\s*=.*(\d+\.\d+\.\d+).*/)
   examples = "List VPNs: sudo ./#{app} list\n".colorize(:green)
@@ -232,5 +232,6 @@ if __FILE__ == $0
     end
   end
 end
+if __FILE__ == $0; vpnCtlCliMain; end
 
 # vim: ft=ruby:ts=2:sw=2:sts=2

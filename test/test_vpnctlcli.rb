@@ -20,17 +20,47 @@
 #OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #SOFTWARE.
 
+require 'nub'
 require 'yaml'
 require 'minitest/autorun'
 
-mod = File.join(File.dirname(File.expand_path(__FILE__)), '../vpnctl-cli')
-load mod
+root_path = File.join(File.dirname(File.expand_path(__FILE__)), '..')
+load File.join(root_path, 'vpnctl-cli')
 
 class Test_VpnCtlCli < Minitest::Test
+  Button = Struct.new(:label)
 
-  def test_config
+  def setup
+    ARGV.clear
   end
 
+  def test_main
+    out = Sys.capture{assert_raises(SystemExit){vpnCtlCliMain}}.stdout
+    assert(out.include?("COMMANDS"))
+  end
+
+  def test_main_test
+    ARGV << 'list'
+    out = Sys.capture{vpnCtlCliMain}.stdout
+    assert(out.include?("vpnctl-cli"))
+  end
+
+  def test_main_start_saved_pass
+    ARGV << "start" << "vpn1"
+    Config.init('vpnctl.yml')
+    vpn1 = Config.add_vpn('vpn1')
+    vpn1.login.type = Model::PassTypes.save
+    vpn1.btn = Button.new(vpn1.name)
+    Config.update_vpn(vpn1)
+
+    User.stub(:root?, true) {
+      Net.stub(:ip_forward?, true) {
+        ThreadComm.stub(:new, nil) {
+          Sys.capture{assert_raises{vpnCtlCliMain}}
+        }
+      }
+    }
+  end
 end
 
 # vim: ft=ruby:ts=2:sw=2:sts=2
