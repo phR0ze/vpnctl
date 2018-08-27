@@ -32,6 +32,7 @@ class Test_VpnCtlCli < Minitest::Test
 
   def setup
     ARGV.clear
+    Config.reset
   end
 
   def test_main
@@ -41,8 +42,14 @@ class Test_VpnCtlCli < Minitest::Test
 
   def test_main_test
     ARGV << 'list'
-    out = Sys.capture{vpnCtlCliMain}.stdout
-    assert(out.include?("vpnctl-cli"))
+    File.stub(:exist?, true) {
+      Config.init('foo')
+      vpn1 = Config.add_vpn('vpn1')
+    }
+    Config.stub(:init, true) {
+      out = Sys.capture{vpnCtlCliMain}.stdout
+      assert(out.include?("vpn1"))
+    }
   end
 
   def test_main_start_saved_pass
@@ -61,6 +68,73 @@ class Test_VpnCtlCli < Minitest::Test
       }
     }
   end
+
+  def test_main_start_ask_pass
+    ARGV << "start" << "vpn1"
+    Config.init('vpnctl.yml')
+    vpn1 = Config.add_vpn('vpn1')
+    vpn1.login.type = Model::PassTypes.ask
+    vpn1.btn = Button.new(vpn1.name)
+    Config.update_vpn(vpn1)
+
+    User.stub(:root?, true) {
+      Net.stub(:ip_forward?, true) {
+        Sys.stub(:getpass, ->(){raise Interrupt}) {
+          ThreadComm.stub(:new, []) {
+            Sys.capture{vpnCtlCliMain}
+          }
+        }
+      }
+    }
+  end
+
+  def test_exec_with_status_check
+    Config.init('foo')
+    Config.add_vpn('vpn1')
+    vpn1 = Config.vpn('vpn1')
+
+    User.stub(:root?, true) {
+      Net.stub(:ip_forward?, true) {
+        vpn = VpnCtlCli.new(vpn1.name)        
+        assert_equal(vpn1, vpn.config)
+        out = Sys.capture{
+          refute(vpn.exec_with_status("echo 'foo'", check:"200"))
+        }.stdout
+        assert(out.include?("success"))
+      }
+    }
+  end
+
+  def test_exec_with_status_without_check
+    Config.init('foo')
+    Config.add_vpn('vpn1')
+    vpn1 = Config.vpn('vpn1')
+
+    User.stub(:root?, true) {
+      Net.stub(:ip_forward?, true) {
+        vpn = VpnCtlCli.new(vpn1.name)        
+        assert_equal(vpn1, vpn.config)
+        out = Sys.capture{vpn.exec_with_status("echo 'foo'")}.stdout
+        assert(out.include?("success"))
+      }
+    }
+  end
+
+  def test_exec_with_status_fail
+    Config.init('foo')
+    Config.add_vpn('vpn1')
+    vpn1 = Config.vpn('vpn1')
+
+    User.stub(:root?, true) {
+      Net.stub(:ip_forward?, true) {
+        vpn = VpnCtlCli.new(vpn1.name)        
+        assert_equal(vpn1, vpn.config)
+        out = Sys.capture{assert_raises(SystemExit){vpn.exec_with_status("exit 1", die:true)}}.stdout
+        assert(out.include?("failed"))
+      }
+    }
+  end
+
 end
 
 # vim: ft=ruby:ts=2:sw=2:sts=2

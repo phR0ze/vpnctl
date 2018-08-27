@@ -167,6 +167,7 @@ class VpnCtlCli
   # Execute the shell command and print status
   # @param cmd [String] command to execute
   # @param die [bool] exit on true
+  # @param check [String] result to check against
   # @result status [bool] true on success else false
   def exec_with_status(cmd, die:true, check:nil)
     out = `#{cmd}`
@@ -224,6 +225,7 @@ def vpnCtlCliMain
       Log.info("MGMT: Waiting for VPN to halt".colorize(:magenta))
       vpn_thread.join
     rescue Interrupt
+      vpn_thread ||= []
       Log.puts(stamp:false)
       Log.info("MGMT: Halting VPN".colorize(:magenta))
       vpn_thread.push(Model::CommCmd.halt)
