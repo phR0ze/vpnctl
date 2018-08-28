@@ -193,7 +193,8 @@ end
 def vpnCtlCliMain
   app = 'vpnctl-cli'
   version = FileUtils.version('vpnctl.gemspec', /\s*spec\.version\s*=.*(\d+\.\d+\.\d+).*/)
-  examples = "List VPNs: sudo ./#{app} list\n".colorize(:green)
+  examples = "Add VPN: sudo ./#{app} add PIA save\n".colorize(:green)
+  examples += "List VPNs: sudo ./#{app} list\n".colorize(:green)
   examples += "Start VPN: sudo ./#{app} start NordVPN\n".colorize(:green)
   cmdr = Commander.new(app:app, version:version, examples:examples)
 
@@ -224,7 +225,7 @@ def vpnCtlCliMain
   if cmdr[:add]
     vpn = Config.add_vpn(cmdr[:add][:add0])
     vpn.login.type = cmdr[:add][:add1]
-    User.runAsUser{ Config.save }
+    User.drop_privileges{ Config.save }
     Config.vpns.each{|x| puts("Name: #{x.name.colorize(:cyan)}, Login type: #{x.login.type}, Config: #{x.ovpn}")}
   elsif cmdr[:list]
     Config.vpns.each{|x| puts("Name: #{x.name.colorize(:cyan)}, Login type: #{x.login.type}, Config: #{x.ovpn}")}
