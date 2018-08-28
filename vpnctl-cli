@@ -52,17 +52,19 @@ class VpnCtlCli
 
       while !halt do
         begin
+          retry_str = " - retry #{retry_cnt}" if retry_cnt > 0
+          Log.warn("Starting the VPN connection#{retry_str}")
+
           # (1) Main thread: Write out the auth file for OpenVPN to read
           File.open(@config.auth, "w", 0600){|f|
             f.puts(@config.login.user)
             f.puts(@config.login.pass)
           }
 
-          retry_str = " - retry #{retry_cnt}" if retry_cnt > 0
-          Log.warn("Starting the VPN connection#{retry_str}")
-          Log.info("Using OpenVPN config #{@config.ovpn.colorize(:cyan)}")
+          # (2) Create network namespace if required
 
           # (2) OpenVPN thread: manages the openvpn process
+          Log.info("Using OpenVPN config #{@config.ovpn.colorize(:cyan)}")
           resolved_script = "/etc/openvpn/scripts/update-systemd-resolved"
           env_path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
           cmd = "openvpn --config #{@config.ovpn} --setenv '#{env_path}' --script-security 2 "
