@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=vpnctl
+Comment=Advanced automation for openvpn with a clean GTK+ GUI
+Exec=vpnctl
+Icon=vpnctl
+Terminal=false
+StartupNotify=true
+Type=Application
+Categories=Network;

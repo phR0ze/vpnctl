@@ -23,30 +23,97 @@
 # Maintained by phR0ze
 #-------------------------------------------------------------------------------
 pkgname=vpnctl
-pkgver=0.0.37
+pkgver=0.0.1
 pkgrel=1
-pkgdesc='Advanced automation for openvpn with a clean GTK+ UI'
+pkgdesc='Advanced automation for openvpn'
 arch=(any)
 url='https://github.com/phR0ze/vpnctl'
 license=(MIT)
-depends=(ruby-nub)
+depends=(ruby-nub openvpn openvpn-update-systemd-resolved)
 options=(!emptydirs)
-source=(https://rubygems.org/downloads/$pkgname-$pkgver.gem)
-noextract=($pkgname-$pkgver.gem)
-sha256sums=('bbf367c4f771aee156141f226e9e1a36f3a9a89e84a5771200ed7d7568d5d079')
+install=$pkgname.install
+
+# Using strong to bump encryption from 128 AES to 256 AES
+source=("git+https://github.com/phR0ze/$pkgname.git#tag=$pkgver"
+        "https://www.privateinternetaccess.com/openvpn/openvpn-strong.zip"
+        "$pkgname.desktop")
+sha256sums=('SKIP'
+            'd826de48c49b76d9d88dde52fffd2eab61f8790923aca93eacf4ceabc3aa95b8'
+            '7cc85c9dc0f0e797e207d4198d7327feb8c8449c7ae532b619ef2ec5bf1a562d')
+
+build()
+{
+  cd $srcdir
+  msg "Building $pkgname..."
+
+  # Rename PIA configuration files
+  # openvpn doesn't do well with spaces
+  for ovpn in $srcdir/*.ovpn; do
+    dir=$(dirname "$ovpn")
+    base=$(basename "$ovpn")
+    x="${base}"
+    x="${x// /-}"
+    x="${x,,}"
+    if [ "${x}" != "${base}" ]; then
+      msg2 "Renaming: $base => $x"
+      mv "$ovpn" "$dir/$x"
+    fi
+  done
+
+#  # Generate install icons from scalables
+#  for svg in $srcdir/$pkgname/images/scalable/*.svg; do
+#    base=$(basename "$svg")
+#    x="${base//svg/png}"
+#    if [ ! -e $srcdir/$x ]; then
+#      msg2 "Generating icon $x"
+#      convert -background none -density 384 -resize x32 $svg $srcdir/$x
+#    fi
+#  done
+}
 
 package()
 {
-  msg "Packaging $pkgname"
-  gem_install_path="$(ruby -e'puts Gem.default_dir')"
+  cd $srcdir
+  msg "Packaging $pkgname..."
 
-  msg2 "Installing to $gem_install_path"
-  gem install --ignore-dependencies --no-user-install -i "$pkgdir/$gem_install_path" -n "$pkgdir/usr/bin" $gem-$pkgver.gem
-  rm "$pkgdir/$gem_install_path/cache/$gem-$pkgver.gem"
+  # Package license and documentation
+  msg2 "Packaging license and docs..."
+  install -dm755 $pkgdir/usr/share/doc/$pkgname
+  install -Dm644 $srcdir/$pkgname/LICENSE -t $pkgdir/usr/share/doc/$pkgname
+  install -Dm644 $srcdir/$pkgname/README.md -t $pkgdir/usr/share/doc/$pkgname
 
-  msg2 "Installing binaries to /usr/bin"
-  install -dm755 /usr/bin
-  install -Dm750 $srcdir/../../bin/nsctl -t $pkgdir/usr/bin
+  # Package data files
+  msg2 "Packaging data files"
+  install -dm755 $pkgdir/usr/share/$pkgname
+#  install -Dm644 $srcdir/$pkgname/$pkgname-settings.ui -t $pkgdir/usr/share/$pkgname
+#  for x in $srcdir/$pkgname/images/*.png; do
+#    msg2 "Packaging images: $x"
+#    install -Dm644 $x -t $pkgdir/usr/share/$pkgname/images
+#  done
+#
+#  # Package executables
+#  msg2 "Packaging executables"
+#  install -Dm755 $srcdir/$pkgname/$pkgname -t $pkgdir/usr/bin
+#  install -Dm755 $srcdir/$pkgname/$pkgname-cli -t $pkgdir/usr/bin
+#
+#  # Package generated icons
+#  for x in $srcdir/$pkgname*.png; do
+#    msg2 "Packaging generated icon: $x"
+#    install -Dm644 $x -t $pkgdir/usr/share/icons/hicolor/32x32/apps
+#    rm $x
+#  done
+
+  # Package launch files
+  msg2 "Packaging desktop launch file"
+  install -Dm644 $pkgname.desktop -t $pkgdir/usr/share/applications
+
+  # Package PIA configuration
+  install -dm750 $pkgdir/etc/openvpn/client
+  for x in $srcdir/*.ovpn $srcdir/*.crt $srcdir/*.pem; do
+    msg2 "Packaging pia config: $x"
+    install -Dm600 "$x" -t $pkgdir/etc/openvpn/client
+  done
 }
+
 
 # vim: ts=2:sw=2:sts=2

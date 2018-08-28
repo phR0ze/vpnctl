@@ -9,4 +9,6 @@ Gemfile.lock
 openvpn.yml
 aur/pkg
 aur/src
+aur/vpnctl
+aur/*.zip
 aur/*.pkg.tar.xz
