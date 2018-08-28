@@ -197,6 +197,16 @@ def vpnCtlCliMain
   examples += "Start VPN: sudo ./#{app} start NordVPN\n".colorize(:green)
   cmdr = Commander.new(app:app, version:version, examples:examples)
 
+  # Add VPNs
+  #-----------------------------------------------------------------------------
+  cmdr.add('add', 'Add VPN yaml stub to config', nodes:[
+    Option.new(nil, 'VPN name to use for entry', required: true),
+    Option.new(nil, 'VPN type to use for entry', required: true, allowed:{
+      'ask': 'Always ask for a password',
+      'save': 'Password is saved on the config file'
+    })
+  ], examples: "Add VPN: sudo ./#{app} add PIA save\n")
+
   # List VPNs
   #-----------------------------------------------------------------------------
   cmdr.add('list', 'List configured VPNs',
@@ -205,16 +215,19 @@ def vpnCtlCliMain
   # Start VPNs
   #-----------------------------------------------------------------------------
   cmdr.add('start', 'Start VPN service', nodes:[
-    Option.new(nil, 'VPN name to lookup in config')
+    Option.new(nil, 'VPN name to lookup in config', required: true)
   ], examples: "Start VPN: sudo ./#{app} start NordVPN\n")
 
   cmdr.parse!
   Config.init('vpnctl.yml')
 
-  if cmdr[:list]
-    Config.vpns.each{|x|
-      puts("Name: #{x.name.colorize(:cyan)}, Login type: #{x.login.type}, Config: #{x.ovpn}")
-    }
+  if cmdr[:add]
+    vpn = Config.add_vpn(cmdr[:add][:add0])
+    vpn.login.type = cmdr[:add][:add1]
+    User.runAsUser{ Config.save }
+    Config.vpns.each{|x| puts("Name: #{x.name.colorize(:cyan)}, Login type: #{x.login.type}, Config: #{x.ovpn}")}
+  elsif cmdr[:list]
+    Config.vpns.each{|x| puts("Name: #{x.name.colorize(:cyan)}, Login type: #{x.login.type}, Config: #{x.ovpn}")}
   elsif cmdr[:start]
     begin
       vpn = VpnCtlCli.new(cmdr[:start][:start0])

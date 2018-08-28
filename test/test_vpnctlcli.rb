@@ -40,7 +40,17 @@ class Test_VpnCtlCli < Minitest::Test
     assert(out.include?("COMMANDS"))
   end
 
-  def test_main_test
+  def test_main_add
+    ARGV << 'add' << 'vpn1' << 'save'
+    Config.stub(:init, true) {
+      Config.stub(:save, true) {
+        out = Sys.capture{vpnCtlCliMain}.stdout
+        assert(out.include?("vpn1"))
+      }
+    }
+  end
+
+  def test_main_list
     ARGV << 'list'
     File.stub(:exist?, true) {
       Config.init('foo')
@@ -134,7 +144,6 @@ class Test_VpnCtlCli < Minitest::Test
       }
     }
   end
-
 end
 
 # vim: ft=ruby:ts=2:sw=2:sts=2
