@@ -24,7 +24,7 @@ few areas fairly well and will list out what is currently working.
     * [Additional Routing](#additional-routing)
     * [Network Namespace Isolation](#network-namespace-isolation)
 * [Install](#install)
-    * [cyberlinux](#cyberlinux)
+    * [cyberlinux Install](#cyberlinux-install)
     * [Manual Install](#manual-install)
 * [Configure](#configure)
     * [Config file](#config-file)
@@ -58,6 +58,13 @@ what your doing.  ***vpnctl*** harnesses the power of network namespaces to isol
 in a clean automated fashion.
 
 ## Install <a name="install"></a>
+
+### cyberlinux Install <a name="cyberlinux-install"></a>
+```bash
+sudo pacman -S vpnctl
+```
+
+### Manual Install <a name="manual-install"></a>
 ```bash
 git clone https://github.com/phR0ze/vpnctl.git; cd vpnctl
 bundle install --system
@@ -125,16 +132,28 @@ Using ***vpnctl*** via the CLI
 # Print out vpnctl CLI help
 sudo ./vpnctl-cli
 
+# vpnctl-cli_v0.0.53
+# --------------------------------------------------------------------------------
 # Examples:
+# Add VPN: sudo ./vpnctl-cli add PIA save
+# List VPNs: sudo ./vpnctl-cli list
 # Start VPN: sudo ./vpnctl-cli start NordVPN
-#
+# 
 # Usage: ./vpnctl-cli [commands] [options]
 # Global options:
 #     -h|--help                               Print command/options help: Flag(false)
 # COMMANDS:
+#     add                                     Add VPN yaml stub to config
+#     list                                    List configured VPNs
 #     start                                   Start VPN service
-#
+# 
 # see './vpnctl-cli COMMAND --help' for specific command help
+
+# List out available configurations
+sudo ./vpnctl-cli list
+
+# Name: NordVPN, Login type: ask, Config: /etc/openvpn/client/nord.ovpn
+# Name: pia-use-west, Login type: save, Config: /etc/openvpn/client/us-west.ovpn
 
 # Start the 'NordVPN'
 sudo ./vpnctl-cli start NordVPN
@@ -212,6 +231,6 @@ cd ~/Projects/vpnctl
 git config core.hooksPath .githooks
 ```
 
-<!-- 
+<!--
 vim: ts=2:sw=2:sts=2
 -->
