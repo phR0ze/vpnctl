@@ -116,7 +116,8 @@ module Config
     # Ensure only one vpn is set as the default
     Config['vpns'].each{|x| x['default'] = false} if vpn.default
     
-    raw = Config['vpns'].find{|x| x['name'] == vpn.btn.label}
+    name = vpn.btn ? vpn.btn.label : vpn.name
+    raw = Config['vpns'].find{|x| x['name'] == name}
     raw['name'] = vpn.name
     if vpn.login
       raw['login']['type'] = vpn.login.type

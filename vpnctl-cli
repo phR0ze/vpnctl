@@ -225,6 +225,7 @@ def vpnCtlCliMain
   if cmdr[:add]
     vpn = Config.add_vpn(cmdr[:add][:add0])
     vpn.login.type = cmdr[:add][:add1]
+    Config.update_vpn(vpn)
     User.drop_privileges{ Config.save }
     Config.vpns.each{|x| puts("Name: #{x.name.colorize(:cyan)}, Login type: #{x.login.type}, Config: #{x.ovpn}")}
   elsif cmdr[:list]
