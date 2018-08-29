@@ -27,7 +27,7 @@ require_relative '../lib/model'
 class Test_Model < Minitest::Test
 
   def test_FailMessage
-    assert_equal(1, Model::FailMessages.size)
+    assert_equal(2, Model::FailMessages.size)
     refute(nil, Model::FailMessages.first)
   end
 

@@ -52,8 +52,7 @@ class VpnCtlCli
 
       while !halt do
         begin
-          retry_str = " - retry #{retry_cnt}" if retry_cnt > 0
-          Log.warn("Starting the VPN connection#{retry_str}")
+          retry_str = retry_cnt > 0 ? " - retry #{retry_cnt}" : ""
 
           # (1) Main thread: Write out the auth file for OpenVPN to read
           File.open(@config.auth, "w", 0600){|f|
@@ -61,18 +60,28 @@ class VpnCtlCli
             f.puts(@config.login.pass)
           }
 
-          # (2) Create network namespace if required
+          # (2) Main thred: Create network namespace if required
+          namespace_exec = ""
+          if @config.target
+            Log.warn("Starting targeted VPN connection#{retry_str}")
+            Net.create_namespace(@config.namespace)
+            namespace_exec = "ip netns exec #{@config.namespace} "
+            msg = "Namespace #{@config.namespace} can't reach google.com"
+            raise(Exception, msg) if !Net.namespace_connectivity?(@config.namespace, 'google.com')
+          else
+            Log.warn("Starting machine wide VPN connection#{retry_str}")
+          end
 
-          # (2) OpenVPN thread: manages the openvpn process
+          # (3) OpenVPN thread: manages the openvpn process (inside/outside namespace)
           Log.info("Using OpenVPN config #{@config.ovpn.colorize(:cyan)}")
           resolved_script = "/etc/openvpn/scripts/update-systemd-resolved"
           env_path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
           cmd = "openvpn --config #{@config.ovpn} --setenv '#{env_path}' --script-security 2 "
           cmd += "--up #{resolved_script} --down #{resolved_script} --down-pre "
           cmd += "--auth-user-pass #{@config.auth}"
-          stdin, stdout, openvpn_thread = Open3.popen2e("bash -c '#{Net.proxy_export}#{cmd}'")
+          stdin, stdout, openvpn_thread = Open3.popen2e("#{namespace_exec}bash -c '#{Net.proxy_export}#{cmd}'")
 
-          # (3) Log thread: Start a separate log thread drain stdout to logs
+          # (4) Log thread: Start a separate log thread drain stdout to logs
           log_thread = Thread.new{
             while line=stdout.gets do
               if line.include?("Initialization Sequence Completed")
@@ -88,7 +97,7 @@ class VpnCtlCli
             end
           }
 
-          # (1) Main thread: Manage thread communication and actions
+          # (5) Main thread: Manage thread communication and actions
           vpn_started = false
           while true do
             if !comm_in.empty?
@@ -106,21 +115,26 @@ class VpnCtlCli
                   Log.print("Adding route #{route.colorize(:cyan)} for #{tun_ip.colorize(:cyan)} on tun0")
                   exec_with_status("ip route add #{route} via #{tun_ip} dev tun0")
                 }
+
+                # Launch apps in the namespace
+                (@config.apps || []).each{|app| self.launch_app_in_namespace(app)}
               end
 
-              # Terminate on halt or failures
-              if [Model::CommCmd.halt, Model::CommCmd.fail].include?(msg.cmd)
-                Log.error(msg.value) if msg.cmd == Model::CommCmd.fail
+              # Terminate on halt, potentially retry on errors
+              if msg.cmd == Model::CommCmd.halt
                 Log.warn("Halting the management thread")
                 raise SystemExit
+              elsif msg.cmd == Model::CommCmd.fail
+                Log.error(msg.value)
+                raise(Exception, "OpenVPN connection failed")
               end
             else
-              sleep(0.25)
+              sleep(0.1)
             end
 
             # Bail if vpn is down and log is drained
             if !openvpn_thread.alive?
-              sleep(0.25)
+              sleep(0.1)
               raise(Exception, "OpenVPN connection failed") if comm_in.empty?
             elsif !vpn_started
               Log.info("Waiting for vpn #{@config.name.colorize(:cyan)} to be started...")
@@ -135,16 +149,14 @@ class VpnCtlCli
         rescue Exception => e
           Log.error(e.to_s)
           comm_out << ThreadMsg.new(Model::CommCmd.tun_down)
+          halt = true if !@config.retry
 
         # Clean up on errors and try again
         ensure
           File.delete(@config.auth) if File.exist?(@config.auth)
           stdin.close if !stdin.nil?
           stdout.close if !stdout.nil?
-          if openvpn_thread and openvpn_thread.alive?
-            Process.kill("KILL", openvpn_thread.pid)
-            openvpn_thread.kill
-          end
+          self.stop(openvpn_thread)
 
           # Wait for log to drain then send out halt notification
           sleep(0.25)
@@ -164,6 +176,45 @@ class VpnCtlCli
         end
       end
     }
+  end
+
+  # Stop the VPN connection, terminating any target apps and
+  # cleaning up the network namespace.
+  # @param openvpn_thread [Thread] to terminate
+  def stop(openvpn_thread)
+    Log.warn("Shutting down the VPN and cleaning up")
+
+    # Kill all target apps and openvpn
+    if @config.target
+      Log.info("Terminating all apps running in the #{@config.namespace.colorize(:cyan)} namespace")
+      system("ip netns pids #{@config.namespace} | xargs -rd'\n' kill -9 &> /dev/null")
+    elsif openvpn_thread and openvpn_thread.alive?
+      Process.kill("KILL", openvpn_thread.pid)
+      openvpn_thread.kill
+    end
+
+    # Clean up network namespace
+    Net.delete_namespace(@config.namespace) if @config.target
+  end
+
+  # Launch the given app in the given namespace
+  # @param app [String] the name of the app to launch
+  # @returns [String] pid of the app that was just launched
+  def launch_app_in_namespace(app)
+    Log.info("Launching app #{app.colorize(:cyan)} in the #{@config.namespace.colorize(:cyan)} namespace")
+    pid = spawn("ip netns exec #{@config.namespace} sudo -H -u #{User.name} bash -c '#{Net.proxy_export}#{app}' &> /dev/null")
+    Process.detach(pid)
+
+    # Check if the app is running
+    begin
+      Process.getpgid(pid)
+      Log.puts("...success!".colorize(:green), stamp:false)
+    rescue Errno::ESRCH
+      Log.puts("...failed!".colorize(:red), stamp:false)
+      raise SystemExit
+    end
+
+    return pid
   end
 
   # Execute the shell command and print status

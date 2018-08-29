@@ -23,6 +23,7 @@ require 'ostruct'
 
 module Model
   FailMessages = [
+    "Authentication/Decrypt packet error: bad packet",
     "Received control message: AUTH_FAILED",
   ]
 
@@ -79,9 +80,10 @@ module Model
   # @param target [Bool] target specific apps
   # @param apps [Array(String)] apps to target
   # @param default [Bool] True if default vpn
+  # @param retry [Bool] on failure if true
   # @param state [String] state of the vpn
   # @param btn [GtkButton] associated button
-  Vpn = Struct.new(:name, :login, :routes, :ovpn, :auth, :target, :apps, :default, :state, :btn) do
+  Vpn = Struct.new(:name, :login, :routes, :ovpn, :auth, :target, :apps, :default, :retry, :state, :btn) do
     def clone(*args)
       if args.any? && args.first.is_a?(Vpn)
         self.name = args.first.name
@@ -92,14 +94,20 @@ module Model
         self.target = args.first.target
         self.apps = Marshal.load(Marshal.dump(args.first.apps))
         self.default = args.first.default
+        self.retry = args.first.retry
         self.state = args.first.state
         self
       elsif args.size == 0
         Vpn.new(self.name, self.login.clone, Marshal.load(Marshal.dump(self.routes)), self.ovpn,
-          self.auth, self.target, Marshal.load(Marshal.dump(self.apps)), self.default, self.state)
+          self.auth, self.target, Marshal.load(Marshal.dump(self.apps)), self.default, self.retry, self.state)
       else
         Vpn.new
       end
+    end
+
+    # Return a sanitized version of name to be used for namespace creation
+    def namespace
+      return self.name ? self.name.downcase.gsub(/[^0-9A-Za-z ]/, '').gsub(' ', '-') : ''
     end
   end
 end
