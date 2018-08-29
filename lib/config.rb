@@ -86,7 +86,7 @@ module Config
   def add_vpn(name)
     Config['vpns'] = [] if !Config['vpns']
     vpn = Model::Vpn.new(name, Model::Login.new('ask', '', ''),
-      [], '', '', false, [], false)
+      [], '', '', false, [], false, false)
 
     Config['vpns'] << {
       'name' => name,
