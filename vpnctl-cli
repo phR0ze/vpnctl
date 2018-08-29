@@ -202,7 +202,7 @@ class VpnCtlCli
     # Kill all target apps and openvpn
     if @config.target
       Log.info("Terminating all apps running in the #{@config.namespace.colorize(:cyan)} namespace")
-      system("ip netns pids #{@config.namespace} | xargs -rd'\n' kill -9 &> /dev/null")
+      `ip netns pids #{@config.namespace} | xargs -rd'\n' kill -9 &> /dev/nulls`
     elsif openvpn_thread and openvpn_thread.alive?
       Process.kill("KILL", openvpn_thread.pid)
       openvpn_thread.kill
@@ -216,7 +216,7 @@ class VpnCtlCli
   # @param app [String] the name of the app to launch
   # @returns [String] pid of the app that was just launched
   def launch_app_in_namespace(app)
-    Log.print("Launching app #{app.colorize(:cyan)} in the #{@config.namespace.colorize(:cyan)} namespace")
+    Log.info("Launching app #{app.colorize(:cyan)} in the #{@config.namespace.colorize(:cyan)} namespace", newline:false)
     pid = spawn("ip netns exec #{@config.namespace} sudo -H -u #{User.name} bash -c '#{Net.proxy_export}#{app}' &> /dev/null")
     Process.detach(pid)
 
