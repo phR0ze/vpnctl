@@ -75,8 +75,11 @@ module Config
     # Load default
     default = vpn['default'] || false
 
+    # Load retry
+    _retry = vpn['retry'] || false
+
     return Model::Vpn.new(name, Model::Login.new(type, user, pass),
-      routes, ovpn, ovpn_auth_path, target, apps, default)
+      routes, ovpn, ovpn_auth_path, target, apps, default, _retry)
   end
 
   # Create a new vpn
@@ -96,7 +99,8 @@ module Config
       'ovpn' => vpn.ovpn,
       'target' => vpn.target,
       'apps' => vpn.apps,
-      'default' => vpn.default
+      'default' => vpn.default,
+      'retry' => vpn.retry
     }
 
     return vpn
@@ -129,5 +133,6 @@ module Config
     raw['target'] = vpn.target
     raw['apps'] = vpn.apps
     raw['default'] = vpn.default
+    raw['retry'] = vpn.retry
   end
 end

@@ -70,7 +70,7 @@ class Test_Config < Minitest::Test
     }]
     Config['vpns'] = vpns
 
-    assert_equal(Model::Vpn.new('vpn1', Model::Login.new, [], ovpn, auth, false, [], false), Config.vpn('vpn1'))
+    assert_equal(Model::Vpn.new('vpn1', Model::Login.new, [], ovpn, auth, false, [], false, false), Config.vpn('vpn1'))
   end
 
   def test_add_vpn

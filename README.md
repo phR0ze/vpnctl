@@ -89,6 +89,7 @@ you can simply start vpnctl and use the GUI to create and save your config.
       - 10.33.0.0/16
       ovpn: "/etc/openvpn/client/nord.ovpn"
       default: true
+      retry: false
       target: false
       apps: []
     - name: pia-us-west
@@ -99,6 +100,7 @@ you can simply start vpnctl and use the GUI to create and save your config.
       routes: []
       ovpn: "/etc/openvpn/client/us-west.ovpn"
       default: false
+      retry: true
       target: true
       apps:
       - chromium
