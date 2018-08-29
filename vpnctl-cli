@@ -64,7 +64,12 @@ class VpnCtlCli
           namespace_exec = ""
           if @config.target
             Log.warn("Starting targeted VPN connection#{retry_str}")
-            Net.create_namespace(@config.namespace)
+            if @config.nameservers.any?
+              network = Net::Network.new(nil, nil, nil, @config.nameservers)
+              Net.create_namespace(@config.namespace, network: network)
+            else
+              Net.create_namespace(@config.namespace)
+            end
             namespace_exec = "ip netns exec #{@config.namespace} "
             msg = "Namespace #{@config.namespace} can't reach google.com"
             raise(Exception, msg) if !Net.namespace_connectivity?(@config.namespace, 'google.com')
@@ -74,12 +79,18 @@ class VpnCtlCli
 
           # (3) OpenVPN thread: manages the openvpn process (inside/outside namespace)
           Log.info("Using OpenVPN config #{@config.ovpn.colorize(:cyan)}")
-          resolved_script = "/etc/openvpn/scripts/update-systemd-resolved"
+          ovpndir = "/etc/openvpn/client"
           env_path = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-          cmd = "openvpn --config #{@config.ovpn} --setenv '#{env_path}' --script-security 2 "
-          cmd += "--up #{resolved_script} --down #{resolved_script} --down-pre "
-          cmd += "--auth-user-pass #{@config.auth}"
-          stdin, stdout, openvpn_thread = Open3.popen2e("#{namespace_exec}bash -c '#{Net.proxy_export}#{cmd}'")
+          cmd = "openvpn --nobind --auth-nocache --setenv '#{env_path}'"
+          cmd += " --config #{@config.ovpn} --auth-user-pass #{@config.auth}"
+
+          # Add dynamic DNS updates from VPN connection
+          if !@config.nameservers || !@config.nameservers.any?
+            resolved_script = "/etc/openvpn/scripts/update-systemd-resolved"
+            cmd += " --script-security 2 --up #{resolved_script} --down #{resolved_script} --down-pre"
+          end
+
+          stdin, stdout, openvpn_thread = Open3.popen2e("#{namespace_exec}bash -c '#{Net.proxy_export}#{cmd}'", chdir: ovpndir)
 
           # (4) Log thread: Start a separate log thread drain stdout to logs
           log_thread = Thread.new{
@@ -98,6 +109,7 @@ class VpnCtlCli
           }
 
           # (5) Main thread: Manage thread communication and actions
+          wait_cnt = 0
           vpn_started = false
           while true do
             if !comm_in.empty?
@@ -110,11 +122,13 @@ class VpnCtlCli
                 comm_out << ThreadMsg.new(Model::CommCmd.vpn_up)
 
                 # Add any routes from the configuration
-                tun_ip = Socket.getifaddrs.find{|x| x.addr and x.name == 'tun0' and x.addr.ipv4?}.addr.ip_address
-                @config.routes.each{|route|
-                  Log.print("Adding route #{route.colorize(:cyan)} for #{tun_ip.colorize(:cyan)} on tun0")
-                  exec_with_status("ip route add #{route} via #{tun_ip} dev tun0")
-                }
+                if @config.routes && @config.routes.any?
+                  tun_ip = Socket.getifaddrs.find{|x| x.addr and x.name == 'tun0' and x.addr.ipv4?}.addr.ip_address
+                  @config.routes.each{|route|
+                    Log.print("Adding route #{route.colorize(:cyan)} for #{tun_ip.colorize(:cyan)} on tun0")
+                    exec_with_status("ip route add #{route} via #{tun_ip} dev tun0")
+                  }
+                end
 
                 # Launch apps in the namespace
                 (@config.apps || []).each{|app| self.launch_app_in_namespace(app)}
@@ -137,7 +151,8 @@ class VpnCtlCli
               sleep(0.1)
               raise(Exception, "OpenVPN connection failed") if comm_in.empty?
             elsif !vpn_started
-              Log.info("Waiting for vpn #{@config.name.colorize(:cyan)} to be started...")
+              Log.info("Waiting for vpn #{@config.name.colorize(:cyan)}...") if wait_cnt % 10 == 0
+              wait_cnt += 1
             end
           end
 
@@ -201,7 +216,7 @@ class VpnCtlCli
   # @param app [String] the name of the app to launch
   # @returns [String] pid of the app that was just launched
   def launch_app_in_namespace(app)
-    Log.info("Launching app #{app.colorize(:cyan)} in the #{@config.namespace.colorize(:cyan)} namespace")
+    Log.print("Launching app #{app.colorize(:cyan)} in the #{@config.namespace.colorize(:cyan)} namespace")
     pid = spawn("ip netns exec #{@config.namespace} sudo -H -u #{User.name} bash -c '#{Net.proxy_export}#{app}' &> /dev/null")
     Process.detach(pid)
 
@@ -290,7 +305,7 @@ def vpnCtlCliMain
         vpn.config.login.pass = Sys.getpass
       end
       vpn_thread = vpn.start
-      Log.info("MGMT: Waiting for VPN to halt".colorize(:magenta))
+      Log.info("MGMT: Managing VPN connection".colorize(:magenta))
       vpn_thread.join
     rescue Interrupt
       vpn_thread ||= []

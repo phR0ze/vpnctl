@@ -78,15 +78,18 @@ module Config
     # Load retry
     _retry = vpn['retry'] || false
 
+    # Load namespace nameservers
+    nameservers = vpn['nameservers'] || []
+
     return Model::Vpn.new(name, Model::Login.new(type, user, pass),
-      routes, ovpn, ovpn_auth_path, target, apps, default, _retry)
+      routes, ovpn, ovpn_auth_path, target, apps, default, _retry, nameservers)
   end
 
   # Create a new vpn
   def add_vpn(name)
     Config['vpns'] = [] if !Config['vpns']
     vpn = Model::Vpn.new(name, Model::Login.new('ask', '', ''),
-      [], '', '', false, [], false, false)
+      [], '', '', false, [], false, false, [])
 
     Config['vpns'] << {
       'name' => name,
@@ -100,7 +103,8 @@ module Config
       'target' => vpn.target,
       'apps' => vpn.apps,
       'default' => vpn.default,
-      'retry' => vpn.retry
+      'retry' => vpn.retry,
+      'nameservers' => vpn.nameservers
     }
 
     return vpn
@@ -134,5 +138,6 @@ module Config
     raw['apps'] = vpn.apps
     raw['default'] = vpn.default
     raw['retry'] = vpn.retry
+    raw['nameservers'] = vpn.nameservers
   end
 end

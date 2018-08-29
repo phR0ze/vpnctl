@@ -78,12 +78,13 @@ module Model
   # @param ovpn [String] path to ovpn configuration file
   # @param auth [String] path to auth file named <name>.auth
   # @param target [Bool] target specific apps
-  # @param apps [Array(String)] apps to target
+  # @param apps [Array(String)] to start in isolated namespace
   # @param default [Bool] True if default vpn
   # @param retry [Bool] on failure if true
+  # @param nameservers [Array(String)] to use in namespace
   # @param state [String] state of the vpn
   # @param btn [GtkButton] associated button
-  Vpn = Struct.new(:name, :login, :routes, :ovpn, :auth, :target, :apps, :default, :retry, :state, :btn) do
+  Vpn = Struct.new(:name, :login, :routes, :ovpn, :auth, :target, :apps, :default, :retry, :nameservers, :state, :btn) do
     def clone(*args)
       if args.any? && args.first.is_a?(Vpn)
         self.name = args.first.name
@@ -95,11 +96,13 @@ module Model
         self.apps = Marshal.load(Marshal.dump(args.first.apps))
         self.default = args.first.default
         self.retry = args.first.retry
+        self.nameservers = Marshal.load(Marshal.dump(args.first.nameservers))
         self.state = args.first.state
         self
       elsif args.size == 0
         Vpn.new(self.name, self.login.clone, Marshal.load(Marshal.dump(self.routes)), self.ovpn,
-          self.auth, self.target, Marshal.load(Marshal.dump(self.apps)), self.default, self.retry, self.state)
+          self.auth, self.target, Marshal.load(Marshal.dump(self.apps)), self.default,
+          self.retry, Marshal.load(Marshal.dump(self.nameservers)), self.state)
       else
         Vpn.new
       end
