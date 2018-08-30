@@ -29,7 +29,7 @@ pkgdesc='Advanced automation for openvpn'
 arch=(any)
 url='https://github.com/phR0ze/vpnctl'
 license=(MIT)
-depends=('ruby-nub>=0.0.138' openvpn openvpn-update-systemd-resolved)
+depends=('ruby-nub>=0.0.138' openvpn openvpn-update-systemd-resolved ruby-gtk3)
 options=(!emptydirs)
 install=$pkgname.install
 
