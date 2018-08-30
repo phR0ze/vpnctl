@@ -23,13 +23,13 @@
 # Maintained by phR0ze
 #-------------------------------------------------------------------------------
 pkgname=vpnctl
-pkgver=0.0.1
+pkgver=0.0.62
 pkgrel=1
 pkgdesc='Advanced automation for openvpn'
 arch=(any)
 url='https://github.com/phR0ze/vpnctl'
 license=(MIT)
-depends=(ruby-nub openvpn openvpn-update-systemd-resolved)
+depends=('ruby-nub>=0.0.138' openvpn openvpn-update-systemd-resolved)
 options=(!emptydirs)
 install=$pkgname.install
 
