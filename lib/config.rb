@@ -68,8 +68,8 @@ module Config
     Log.warn("vpn missing ovpn") if !ovpn
     ovpn_auth_path = ovpn ? File.join(File.dirname(ovpn), "#{name}.auth") : nil
 
-    # Load target apps
-    target = vpn['target'] || false
+    # Load isolate apps
+    isolate = vpn['isolate'] || false
     apps = vpn['apps'] || []
 
     # Load default
@@ -82,7 +82,7 @@ module Config
     nameservers = vpn['nameservers'] || []
 
     return Model::Vpn.new(name, Model::Login.new(type, user, pass),
-      routes, ovpn, ovpn_auth_path, target, apps, default, _retry, nameservers)
+      routes, ovpn, ovpn_auth_path, isolate, apps, default, _retry, nameservers)
   end
 
   # Create a new vpn
@@ -100,7 +100,7 @@ module Config
       },
       'routes' => vpn.routes,
       'ovpn' => vpn.ovpn,
-      'target' => vpn.target,
+      'isolate' => vpn.isolate,
       'apps' => vpn.apps,
       'default' => vpn.default,
       'retry' => vpn.retry,
@@ -134,7 +134,7 @@ module Config
     end
     raw['routes'] = vpn.routes
     raw['ovpn'] = vpn.ovpn
-    raw['target'] = vpn.target
+    raw['isolate'] = vpn.isolate
     raw['apps'] = vpn.apps
     raw['default'] = vpn.default
     raw['retry'] = vpn.retry

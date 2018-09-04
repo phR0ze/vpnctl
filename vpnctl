@@ -56,7 +56,7 @@ class VpnCtl
     Log.init(path:"#{$root_path}/vpnctl.log", queue:true, stdout:true)
 
 #    @enabled_icon = File.join(@icon_path, 'vpnctl-enabled.png')
-#    @targeted_icon = File.join(@icon_path, 'vpnctl-targeted.png')
+#    @isolated_icon = File.join(@icon_path, 'vpnctl-isolated.png')
 #    @disabled_icon  = File.join(@icon_path, 'vpnctl-disabled.png')
 
     # Track VPN state
@@ -156,7 +156,7 @@ class VpnCtl
     activate_pass_entry if !reset && @vpn.login.type == Model::PassTypes.save
     deactivate_pass_entry if reset || @vpn.login.type != Model::PassTypes.save
     @vpn_routes.text = reset ? "" : @vpn.routes * ","
-    @vpn_apps_sw.active = reset ? false : @vpn.target
+    @vpn_apps_sw.active = reset ? false : @vpn.isolate
     @vpn_apps.buffer.text = reset ? "" : @vpn.apps * "\n"
     @vpn_default.active = reset ? true : @vpn.default
     self.select_styling(Model::State.active)
@@ -325,7 +325,7 @@ class VpnCtl
 #
 #    # Left click menu?
 #    tray.signal_connect('activate'){|widget|
-#      widget.pixbuf = GdkPixbuf::Pixbuf.new(file:@targeted_icon)
+#      widget.pixbuf = GdkPixbuf::Pixbuf.new(file:@isolated_icon)
 #    }
 #
 #    return tray
@@ -342,11 +342,11 @@ class VpnCtl
 #    enable.signal_connect('activate'){ start_and_manage_vpn(false) }
 #    menu.append(enable)
 #
-#    # Add target entry
-#    target = Gtk::ImageMenuItem.new(label: "Target")
-#    target.image = Gtk::Image.new(pixbuf: GdkPixbuf::Pixbuf.new(file:@targeted_icon, width:16, height:16))
-#    target.signal_connect('activate'){ start_and_manage_vpn(true) }
-#    menu.append(target)
+#    # Add isolate entry
+#    isolate = Gtk::ImageMenuItem.new(label: "Isolate")
+#    isolate.image = Gtk::Image.new(pixbuf: GdkPixbuf::Pixbuf.new(file:@isolated, width:16, height:16))
+#    isolate.signal_connect('activate'){ start_and_manage_vpn(true) }
+#    menu.append(isolate)
 #
 #    # Add disable entry
 #    disable = Gtk::ImageMenuItem.new(label: "Disable")
@@ -430,13 +430,13 @@ class VpnCtl
 #    return logwin, @logview, @logiter
 #  end
 #
-#  def start_and_manage_vpn(target_mode)
+#  def start_and_manage_vpn(isolate_mode)
 #    return if !@vpn_comm_in.nil?
 #    @vpn_comm_in = Queue.new
 #
 #    region_combo = As.builder.get_object("region_combo")
 #    openvpn_config = @openvpn_configs[region_combo.active]
-#    app = target_mode ? As.builder.get_object("target_entry").text : nil
+#    app = isolate_mode ? As.builder.get_object("isolate_entry").text : nil
 #
 #    Thread.new{
 #      begin
@@ -455,7 +455,7 @@ class VpnCtl
 #
 #            # Set icon for tunnel up status
 #            if msg.cmd == CommCmd.tun_up
-#              icon = target_mode ? @targeted_icon : @enabled_icon
+#              icon = isolate_mode ? @isolated_icon : @enabled_icon
 #              @tray.pixbuf = GdkPixbuf::Pixbuf.new(file:icon)
 #
 #            # Set icon disabled status

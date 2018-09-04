@@ -62,8 +62,8 @@ class VpnCtlCli
 
           # (2) Main thred: Create network namespace if required
           namespace_exec = ""
-          if @config.target
-            Log.warn("Starting targeted VPN connection#{retry_str}")
+          if @config.isolate
+            Log.warn("Starting isolated VPN connection#{retry_str}")
             if @config.nameservers.any?
               network = Net::Network.new(nil, nil, nil, @config.nameservers)
               Net.create_namespace(@config.namespace, network: network)
@@ -193,14 +193,14 @@ class VpnCtlCli
     }
   end
 
-  # Stop the VPN connection, terminating any target apps and
+  # Stop the VPN connection, terminating any isolated apps and
   # cleaning up the network namespace.
   # @param openvpn_thread [Thread] to terminate
   def stop(openvpn_thread)
     Log.warn("Shutting down the VPN and cleaning up")
 
-    # Kill all target apps and openvpn
-    if @config.target
+    # Kill all isolated apps and openvpn
+    if @config.isolate
       Log.info("Terminating all apps running in the #{@config.namespace.colorize(:cyan)} namespace")
       `ip netns pids #{@config.namespace} | xargs -rd'\n' kill -9 &> /dev/nulls`
     elsif openvpn_thread and openvpn_thread.alive?
@@ -209,7 +209,7 @@ class VpnCtlCli
     end
 
     # Clean up network namespace
-    Net.delete_namespace(@config.namespace) if @config.target
+    Net.delete_namespace(@config.namespace) if @config.isolate
   end
 
   # Launch the given app in the given namespace

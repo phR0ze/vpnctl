@@ -17,7 +17,8 @@ strictly the responsiblity of the user and not the developer/creator of ***vpnct
 ***vpnctl*** is currently in development and hasn't even reached beta yet. That said I've tested a
 few areas fairly well and will list out what is currently working.
 
-* CLI with ***additional routing*** but not including ***targeted*** apps
+* CLI with ***isolated*** apps
+* CLI with ***additional routing***
 
 ### Table of Contents
 * [Overview](#overview)
@@ -90,7 +91,7 @@ you can simply start vpnctl and use the GUI to create and save your config.
       ovpn: "/etc/openvpn/client/nord.ovpn"
       default: true
       retry: false
-      target: false
+      isolate: false
       apps: []
     - name: pia-us-west
       login:
@@ -101,7 +102,7 @@ you can simply start vpnctl and use the GUI to create and save your config.
       ovpn: "/etc/openvpn/client/us-west.ovpn"
       default: false
       retry: true
-      target: true
+      isolate: true
       apps:
       - chromium
     ```
@@ -116,10 +117,10 @@ Configuration property definitions:
 * ***type*** - controls whether a password is saved or asked for, possible options ***ask | save***
 * ***user*** - saved username for the VPN
 * ***pass*** - saved password for the VPN or empty string depending on ***type***
-* ***routes*** - list of subnets to route via the VPN gateway. not to be used in conjunction with ***target=true***
+* ***routes*** - list of subnets to route via the VPN gateway. not to be used in conjunction with ***isolate=true***
 * ***ovpn*** - absolute path to the OpenVPN configuration file to use
 * ***default*** - flag indicating when true that this vpn should be what is used by default
-* ***target*** - flag indicating that an isolated network namespace should be created for this VPN
+* ***isolate*** - flag indicating that an isolated network namespace should be created for this VPN
 * ***apps*** - list of applications to start in the new isolated network namespace
 
 ## VpnCtl Guides <a name="vpnctl-guides"></a>
@@ -215,7 +216,7 @@ sudo ./vpnctl
 ### GTK+ <a name="gtk"></a>
 The intent with the GUI wrapper is to provide a system icon with a menu and icon status. The tray
 icon will show a white icon when running but not enabled and a green version when enabled in
-target-mode, a blue version when running in target mode and a red version when disabled.
+isolate-mode, a blue version when running in isolate mode and a red version when disabled.
 
 **System Tray Icon Menu**
 * ***Enable***
