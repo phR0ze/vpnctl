@@ -50,6 +50,7 @@ class VpnCtlCli
       halt = false
       retry_cnt= 0
 
+      Net.delete_namespace(@config.namespace) if @config.isolate
       while !halt do
         begin
           retry_str = retry_cnt > 0 ? " - retry #{retry_cnt}" : ""
