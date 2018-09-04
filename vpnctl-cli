@@ -130,6 +130,12 @@ class VpnCtlCli
                   }
                 end
 
+                # Drop default route to avoid isolation leaks
+                if @config.isolate
+                  Log.info("Dropping #{'default'.colorize(:cyan)} route", newline:false)
+                  exec_with_status("ip netns exec #{@config.namespace} ip route del default")
+                end
+
                 # Launch apps in the namespace
                 (@config.apps || []).each{|app| self.launch_app_in_namespace(app)}
               end
